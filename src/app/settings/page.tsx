@@ -514,8 +514,8 @@ export default function SettingsPage() {
                       onClick={() => setLanguage(lang)}
                       className={`w-full flex items-center justify-between px-5 py-4 border-t border-outline-variant/10 first:border-t-0 transition-colors hover:bg-surface-container-low ${language === lang ? "text-primary" : "text-on-surface"}`}
                     >
-                      <div>
-                        <p className="text-sm font-semibold text-left">{lang === "ko" ? "한국어" : "English"}</p>
+                      <div className="text-left">
+                        <p className="text-sm font-semibold">{lang === "ko" ? "한국어" : "English"}</p>
                         <p className="text-[10px] text-on-surface-variant mt-0.5">{lang === "ko" ? "Korean" : "영어"}</p>
                       </div>
                       {language === lang && (
