@@ -7,10 +7,6 @@ export type Theme    = "light" | "dark" | "system";
 export type Language = "ko" | "en";
 
 export interface SettingsStore {
-  // 프로필
-  displayName: string;
-  setDisplayName: (name: string) => void;
-
   // 시간표
   startOfWeek: "mon" | "sun";
   setStartOfWeek: (v: "mon" | "sun") => void;
@@ -33,9 +29,6 @@ export interface SettingsStore {
 }
 
 export const useSettingsStore = create<SettingsStore>((set) => ({
-  displayName: "Alex Morgan",
-  setDisplayName: (name) => set({ displayName: name }),
-
   startOfWeek: "mon",
   setStartOfWeek: (v) => set({ startOfWeek: v }),
   showWeekends: true,

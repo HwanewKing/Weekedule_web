@@ -50,6 +50,9 @@ interface AuthStore {
 
   /** pending 초기화 */
   clearPending: () => void;
+
+  /** 표시 이름 변경 */
+  updateName: (name: string) => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -108,6 +111,11 @@ export const useAuthStore = create<AuthStore>()(
         get().users.some((u) => u.email.toLowerCase() === email.toLowerCase()),
 
       clearPending: () => set({ pending: null }),
+
+      updateName: (name) =>
+        set((s) => ({
+          user: s.user ? { ...s.user, name } : null,
+        })),
     }),
     {
       name: "weekedule-auth",

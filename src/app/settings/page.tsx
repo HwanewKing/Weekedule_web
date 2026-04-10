@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSettingsStore, Theme, Language } from "@/lib/settingsStore";
+import { useAuthStore } from "@/lib/authStore";
 import { NotificationType } from "@/lib/notificationStore";
 
 // ── i18n ────────────────────────────────────────────────────────
@@ -255,7 +256,6 @@ const SECTION_ICONS: Record<SettingSection, React.ReactNode> = {
 // ── 메인 ────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const {
-    displayName, setDisplayName,
     startOfWeek, setStartOfWeek,
     showWeekends, setShowWeekends,
     gridStart, setGridStart,
@@ -264,6 +264,9 @@ export default function SettingsPage() {
     language, setLanguage,
     notifEnabled, setNotifEnabled,
   } = useSettingsStore();
+
+  const { user, updateName } = useAuthStore();
+  const displayName = user?.name ?? "";
 
   const t = T[language];
 
@@ -280,7 +283,7 @@ export default function SettingsPage() {
 
   const handleSaveName = () => {
     if (!nameInput.trim()) return;
-    setDisplayName(nameInput.trim());
+    updateName(nameInput.trim());
     setNameSaved(true);
     setTimeout(() => setNameSaved(false), 2000);
   };
