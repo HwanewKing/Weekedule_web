@@ -54,8 +54,8 @@ export default function RoomsPage() {
             </h3>
             <p className="text-base text-on-surface-variant leading-relaxed">
               {language === "ko"
-                ? "공유 룸은 팀 생산성의 중심입니다. 룸에 참여하고, 관리하며, 팀 전체의 일정을 유연하게 동기화하세요."
-                : "Shared rooms are the pulse of your productivity. Join, manage, and sync your schedules across teams in a fluid editorial environment."}
+                ? "팀에 참여하고, 관리하며, 팀 전체의 일정을 유연하게 동기화하세요."
+                : "Join, manage, and sync your schedules across teams in a fluid editorial environment."}
             </p>
           </div>
 
