@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useFriendStore } from "@/lib/friendStore";
+import { useFriendStore, getPendingReceived } from "@/lib/friendStore";
 import { useNotificationStore } from "@/lib/notificationStore";
 import { useSettingsStore } from "@/lib/settingsStore";
 import { useAuthStore } from "@/lib/authStore";
@@ -54,7 +54,8 @@ type NavHref = typeof NAV_HREFS[number];
 export default function Sidebar() {
   const pathname = usePathname();
   const router   = useRouter();
-  const { pendingRequests } = useFriendStore();
+  const { relations } = useFriendStore();
+  const pendingRequests = getPendingReceived(relations, user?.id ?? "");
   const { notifications } = useNotificationStore();
   const { language } = useSettingsStore();
   const { user, logout } = useAuthStore();

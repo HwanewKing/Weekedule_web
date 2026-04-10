@@ -1,141 +1,165 @@
 "use client";
 
 import { create } from "zustand";
-import { Friend, FriendRequest } from "@/types/friend";
-import { CalendarEvent } from "@/types/event";
-
-function ev(
-  id: string,
-  title: string,
-  day: number,
-  start: string,
-  end: string,
-  cat: CalendarEvent["category"] = "meeting"
-): CalendarEvent {
-  return { id, title, dayOfWeek: day, startTime: start, endTime: end, category: cat };
-}
-
-const SEED_FRIENDS: Friend[] = [
-  {
-    id: "f1",
-    name: "김태현",
-    initials: "김태",
-    colorId: "blue",
-    addedAt: new Date().toISOString(),
-    events: [
-      ev("f1-1", "운동",        0, "07:00", "08:00", "break"),
-      ev("f1-2", "개발 수업",   0, "10:00", "12:00", "class"),
-      ev("f1-3", "팀 회의",     1, "14:00", "15:00", "meeting"),
-      ev("f1-4", "코딩 스터디", 2, "19:00", "21:00", "deepwork"),
-      ev("f1-5", "수업",        3, "09:00", "11:00", "class"),
-    ],
-  },
-  {
-    id: "f2",
-    name: "이수빈",
-    initials: "이수",
-    colorId: "pink",
-    addedAt: new Date().toISOString(),
-    events: [
-      ev("f2-1", "디자인 작업",   0, "09:00", "13:00", "deepwork"),
-      ev("f2-2", "점심 미팅",     1, "12:00", "13:00", "meeting"),
-      ev("f2-3", "UI 리뷰",       2, "15:00", "16:30", "meeting"),
-      ev("f2-4", "개인 프로젝트", 4, "18:00", "20:00", "deepwork"),
-    ],
-  },
-  {
-    id: "f3",
-    name: "박준호",
-    initials: "박준",
-    colorId: "green",
-    addedAt: new Date().toISOString(),
-    events: [
-      ev("f3-1", "수업",      1, "09:00", "11:00", "class"),
-      ev("f3-2", "수업",      3, "09:00", "11:00", "class"),
-      ev("f3-3", "연구 미팅", 2, "14:00", "15:00", "meeting"),
-      ev("f3-4", "도서관",    4, "13:00", "17:00", "deepwork"),
-    ],
-  },
-  {
-    id: "f4",
-    name: "최예진",
-    initials: "최예",
-    colorId: "violet",
-    addedAt: new Date().toISOString(),
-    events: [
-      ev("f4-1", "마케팅 회의", 0, "10:00", "11:30", "meeting"),
-      ev("f4-2", "콘텐츠 기획", 1, "14:00", "16:00", "deepwork"),
-      ev("f4-3", "SNS 작업",    2, "09:00", "10:30", "deepwork"),
-      ev("f4-4", "팀 싱크",     4, "15:00", "16:00", "meeting"),
-    ],
-  },
-  {
-    id: "f5",
-    name: "정민재",
-    initials: "정민",
-    colorId: "orange",
-    addedAt: new Date().toISOString(),
-    events: [
-      ev("f5-1", "알바",   0, "14:00", "20:00", "deepwork"),
-      ev("f5-2", "알바",   2, "14:00", "20:00", "deepwork"),
-      ev("f5-3", "수업",   1, "10:00", "12:00", "class"),
-      ev("f5-4", "동아리", 3, "17:00", "19:00", "meeting"),
-    ],
-  },
-];
-
-const SEED_REQUESTS: FriendRequest[] = [
-  {
-    id: "req1",
-    fromId: "req-f1",
-    fromName: "안소현",
-    fromInitials: "안소",
-    sentAt: new Date().toISOString(),
-  },
-  {
-    id: "req2",
-    fromId: "req-f2",
-    fromName: "홍기현",
-    fromInitials: "홍기",
-    sentAt: new Date().toISOString(),
-  },
-];
+import { persist } from "zustand/middleware";
+import { FriendRelation, Friend } from "@/types/friend";
+import { useAuthStore } from "@/lib/authStore";
+import { MEMBER_COLOR_OPTIONS, colorIdxToId } from "@/types/room";
 
 interface FriendStore {
-  friends: Friend[];
-  pendingRequests: FriendRequest[];
-  removeFriend: (id: string) => void;
-  acceptRequest: (requestId: string) => void;
-  declineRequest: (requestId: string) => void;
+  relations: FriendRelation[];
+
+  /** 이메일로 친구 요청 보내기 */
+  sendRequest: (
+    fromUserId: string,
+    fromName: string,
+    fromEmail: string,
+    toEmail: string
+  ) => { success: boolean; error?: string };
+
+  /** 받은 요청 수락 */
+  acceptRequest: (relationId: string) => void;
+
+  /** 받은 요청 거절 (관계 삭제) */
+  declineRequest: (relationId: string) => void;
+
+  /** 친구 삭제 */
+  removeFriend: (myId: string, otherUserId: string) => void;
 }
 
-export const useFriendStore = create<FriendStore>((set) => ({
-  friends: SEED_FRIENDS,
-  pendingRequests: SEED_REQUESTS,
+export const useFriendStore = create<FriendStore>()(
+  persist(
+    (set, get) => ({
+      relations: [],
 
-  removeFriend: (id) =>
-    set((s) => ({ friends: s.friends.filter((f) => f.id !== id) })),
+      sendRequest: (fromUserId, fromName, fromEmail, toEmail) => {
+        const trimmed = toEmail.trim().toLowerCase();
 
-  acceptRequest: (requestId) =>
-    set((s) => {
-      const req = s.pendingRequests.find((r) => r.id === requestId);
-      if (!req) return s;
-      const newFriend: Friend = {
-        id: req.fromId,
-        name: req.fromName,
-        initials: req.fromInitials,
-        colorId: "teal",
-        addedAt: new Date().toISOString(),
-        events: [],
-      };
-      return {
-        friends: [...s.friends, newFriend],
-        pendingRequests: s.pendingRequests.filter((r) => r.id !== requestId),
-      };
+        // 자기 자신에게 요청 불가
+        if (fromEmail.toLowerCase() === trimmed) {
+          return { success: false, error: "자신에게 친구 요청을 보낼 수 없어요" };
+        }
+
+        // authStore에서 이메일로 유저 찾기 (백엔드 없이 클라이언트에서 처리)
+        const { users } = useAuthStore.getState();
+        const toUser = users.find((u) => u.email.toLowerCase() === trimmed);
+
+        if (!toUser) {
+          return { success: false, error: "해당 이메일로 가입된 계정이 없어요" };
+        }
+        if (!toUser.verified) {
+          return { success: false, error: "이메일 인증이 완료되지 않은 계정이에요" };
+        }
+
+        // 기존 관계 확인
+        const existing = get().relations.find(
+          (r) =>
+            (r.requesterId === fromUserId && r.addresseeId === toUser.id) ||
+            (r.requesterId === toUser.id && r.addresseeId === fromUserId)
+        );
+
+        if (existing) {
+          if (existing.status === "accepted") {
+            return { success: false, error: "이미 친구 관계예요" };
+          }
+          if (existing.status === "pending") {
+            return { success: false, error: "이미 요청을 보냈거나 받은 상태예요" };
+          }
+        }
+
+        set((s) => ({
+          relations: [
+            ...s.relations,
+            {
+              id: crypto.randomUUID(),
+              requesterId: fromUserId,
+              requesterName: fromName,
+              requesterEmail: fromEmail,
+              addresseeId: toUser.id,
+              addresseeName: toUser.name,
+              addresseeEmail: toUser.email,
+              status: "pending",
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        }));
+
+        return { success: true };
+      },
+
+      acceptRequest: (relationId) =>
+        set((s) => ({
+          relations: s.relations.map((r) =>
+            r.id === relationId ? { ...r, status: "accepted" } : r
+          ),
+        })),
+
+      declineRequest: (relationId) =>
+        set((s) => ({
+          relations: s.relations.filter((r) => r.id !== relationId),
+        })),
+
+      removeFriend: (myId, otherUserId) =>
+        set((s) => ({
+          relations: s.relations.filter(
+            (r) =>
+              !(
+                (r.requesterId === myId && r.addresseeId === otherUserId) ||
+                (r.requesterId === otherUserId && r.addresseeId === myId)
+              )
+          ),
+        })),
     }),
+    { name: "weekedule-friends" }
+  )
+);
 
-  declineRequest: (requestId) =>
-    set((s) => ({
-      pendingRequests: s.pendingRequests.filter((r) => r.id !== requestId),
-    })),
-}));
+// ── 파생 헬퍼 (컴포넌트에서 사용) ─────────────────────────────
+
+/** 현재 유저의 수락된 친구 목록 */
+export function getFriends(relations: FriendRelation[], myId: string): Friend[] {
+  return relations
+    .filter(
+      (r) =>
+        r.status === "accepted" &&
+        (r.requesterId === myId || r.addresseeId === myId)
+    )
+    .map((r, idx) => {
+      const isRequester = r.requesterId === myId;
+      return {
+        userId: isRequester ? r.addresseeId : r.requesterId,
+        name: isRequester ? r.addresseeName : r.requesterName,
+        email: isRequester ? r.addresseeEmail : r.requesterEmail,
+        initials: makeInitials(isRequester ? r.addresseeName : r.requesterName),
+        colorId: colorIdxToId(idx),
+        addedAt: r.createdAt,
+      };
+    });
+}
+
+/** 현재 유저가 받은 대기 중인 요청 */
+export function getPendingReceived(
+  relations: FriendRelation[],
+  myId: string
+): FriendRelation[] {
+  return relations.filter(
+    (r) => r.status === "pending" && r.addresseeId === myId
+  );
+}
+
+/** 현재 유저가 보낸 대기 중인 요청 */
+export function getPendingSent(
+  relations: FriendRelation[],
+  myId: string
+): FriendRelation[] {
+  return relations.filter(
+    (r) => r.status === "pending" && r.requesterId === myId
+  );
+}
+
+function makeInitials(name: string): string {
+  return name.slice(0, 2);
+}
+
+// MEMBER_COLOR_OPTIONS 재export (InviteModal 등에서 사용)
+export { MEMBER_COLOR_OPTIONS };
