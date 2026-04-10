@@ -15,10 +15,14 @@ interface WeekGridProps {
 }
 
 export default function WeekGrid({ events, onEventClick }: WeekGridProps) {
-  const isWeekend = (dayIndex: number) => dayIndex >= 5;
-
   const getEventsForDay = (dayIndex: number) =>
     events.filter((e) => e.dayOfWeek === dayIndex);
+
+  function getDayLabelColor(i: number): string {
+    if (i === 5) return "#2a4dd7"; // 토: 파랑
+    if (i === 6) return "#e11d48"; // 일: 빨강
+    return "var(--color-on-surface)";
+  }
 
   return (
     <div className="bg-surface-container-low rounded-3xl p-5 overflow-x-auto">
@@ -29,10 +33,8 @@ export default function WeekGrid({ events, onEventClick }: WeekGridProps) {
           {DAY_LABELS.map((label, i) => (
             <div key={i} className="text-center pb-3">
               <p
-                className={`text-sm font-extrabold tracking-wide ${
-                  isWeekend(i) ? "text-on-surface-variant/50" : "text-on-surface"
-                }`}
-                style={{ fontFamily: "var(--font-manrope)" }}
+                className="text-sm font-extrabold tracking-wide"
+                style={{ fontFamily: "var(--font-manrope)", color: getDayLabelColor(i) }}
               >
                 {label}
               </p>
@@ -63,7 +65,7 @@ export default function WeekGrid({ events, onEventClick }: WeekGridProps) {
                   className={[
                     "border-t border-outline-variant/10",
                     colIdx > 0 ? "border-l border-outline-variant/10" : "",
-                    isWeekend(colIdx) ? "bg-surface-dim/20" : "",
+                    colIdx >= 5 ? "bg-surface-dim/20" : "",
                     rowIdx === HOURS.length - 1 ? "border-b border-outline-variant/10" : "",
                   ].join(" ")}
                 />

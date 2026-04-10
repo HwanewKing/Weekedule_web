@@ -4,11 +4,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useRoomStore } from "@/lib/roomStore";
 import {
-  COLOR_CONFIG,
-  STATUS_CONFIG,
   MEMBER_COLOR_OPTIONS,
   HEATMAP_COLOR_OPTIONS,
   getMemberStyle,
+  getRoomColorHex,
+  hexToRgba,
 } from "@/types/room";
 import RoomIconEl from "@/components/rooms/RoomIcon";
 import ScheduleOverlap from "@/components/rooms/ScheduleOverlap";
@@ -24,7 +24,7 @@ export default function RoomDetailPage() {
   const room = rooms.find((r) => r.id === id);
 
   const [tab,              setTab]              = useState<Tab>("overlap");
-  const [confirmDelete,    setConfirmDelete]    = useState(false);
+  const [showDeleteModal,  setShowDeleteModal]  = useState(false);
   const [confirmed,        setConfirmed]        = useState<{ label: string } | null>(null);
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
   const [inviteOpen,       setInviteOpen]       = useState(false);
@@ -42,11 +42,9 @@ export default function RoomDetailPage() {
     );
   }
 
-  const colors = COLOR_CONFIG[room.color];
-  const status = STATUS_CONFIG[room.status];
+  const hex = getRoomColorHex(room.color);
 
-  const handleDelete = () => {
-    if (!confirmDelete) { setConfirmDelete(true); return; }
+  const handleDeleteConfirmed = () => {
     deleteRoom(room.id);
     router.push("/rooms");
   };
@@ -70,7 +68,10 @@ export default function RoomDetailPage() {
           </svg>
         </button>
 
-        <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${colors.iconBg} ${colors.iconText} shrink-0`}>
+        <div
+          className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
+          style={{ backgroundColor: hexToRgba(hex, 0.15), color: hex }}
+        >
           <RoomIconEl icon={room.icon} />
         </div>
         <div className="flex-1 min-w-0">
@@ -83,10 +84,6 @@ export default function RoomDetailPage() {
           <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
           <span className="text-xs font-medium text-on-surface-variant">{room.members.length}명</span>
         </div>
-
-        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${status.bg} ${status.text}`}>
-          {status.label}
-        </span>
       </header>
 
       {/* 탭 */}
@@ -281,27 +278,60 @@ export default function RoomDetailPage() {
             <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/10 p-5 flex flex-col gap-3">
               <h4 className="text-sm font-bold text-on-surface">Room 설정</h4>
               <button
-                onClick={() => updateRoom(room.id, { status: room.status === "active" ? "waiting" : "active" })}
-                className="py-2.5 px-4 rounded-xl border border-outline-variant text-sm font-semibold text-on-surface-variant hover:bg-surface-container-low transition-colors text-left"
+                onClick={() => setShowDeleteModal(true)}
+                className="py-2.5 px-4 rounded-xl text-sm font-semibold transition-all text-left border border-error/30 text-error hover:bg-error/5"
               >
-                {room.status === "active" ? "⏸ Waiting으로 변경" : "▶ Active로 변경"}
-              </button>
-              <button
-                onClick={handleDelete}
-                className={`py-2.5 px-4 rounded-xl text-sm font-semibold transition-all text-left ${
-                  confirmDelete ? "bg-error text-on-error" : "border border-error/30 text-error hover:bg-error/5"
-                }`}
-              >
-                {confirmDelete ? "정말 삭제? 다시 클릭하면 삭제됩니다" : "🗑 Room 삭제"}
+                🗑 Room 삭제
               </button>
             </div>
           </div>
         )}
       </main>
 
+      {/* 삭제 확인 모달 */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-on-surface/20 backdrop-blur-sm"
+            onClick={() => setShowDeleteModal(false)}
+          />
+          <div className="relative bg-surface-container-lowest rounded-3xl p-6 max-w-sm w-full shadow-ambient">
+            <div className="w-12 h-12 rounded-full bg-error/10 flex items-center justify-center mb-4 mx-auto">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-error">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+              </svg>
+            </div>
+            <h3
+              className="text-lg font-bold text-on-surface mb-2 text-center"
+              style={{ fontFamily: "var(--font-manrope)" }}
+            >
+              정말 삭제하시겠습니까?
+            </h3>
+            <p className="text-sm text-on-surface-variant mb-6 text-center leading-relaxed">
+              <span className="font-semibold text-on-surface">{room.name}</span>을 삭제하면<br />
+              멤버들의 일정 공유도 종료됩니다. 이 작업은 되돌릴 수 없어요.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 py-2.5 rounded-full border border-outline-variant text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
+              >
+                아니요
+              </button>
+              <button
+                onClick={handleDeleteConfirmed}
+                className="flex-1 py-2.5 rounded-full bg-error text-on-error text-sm font-bold transition-all active:scale-95"
+              >
+                예, 삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 스케줄 확정 토스트 */}
       {confirmed && (
-        <div className="fixed bottom-6 right-6 z-[60] bg-on-surface text-inverse-on-surface px-5 py-3 rounded-2xl text-sm font-semibold shadow-ambient flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed bottom-6 right-6 z-[60] bg-on-surface text-inverse-on-surface px-5 py-3 rounded-2xl text-sm font-semibold shadow-ambient flex items-center gap-3">
           <span className="text-[#4ade80]">✓</span>
           {confirmed.label} 확정되었어요!
         </div>

@@ -43,20 +43,6 @@ export default function ScheduleOverlap({ members, heatmapColor = "blue", onConf
 
   const activeCount = activeIds.size;
 
-  // 히트맵 범례용 색상
-  const heatOpt = HEATMAP_COLOR_OPTIONS.find((o) => o.id === heatmapColor) ?? HEATMAP_COLOR_OPTIONS[0];
-
-  // 최적 슬롯: 활성 멤버 중 아무도 바쁘지 않은 첫 번째 셀
-  const optimalKey = useMemo(() => {
-    for (const dayIdx of [0, 1, 2, 3, 4, 5, 6]) {
-      for (const hour of HOURS) {
-        const busy = getBusyMembers(members, activeIds, dayIdx, hour).length;
-        if (busy === 0 && activeCount > 0) return slotKey(dayIdx, hour);
-      }
-    }
-    return null;
-  }, [members, activeIds, activeCount]);
-
   // 선택된 슬롯 정보
   const selectedSlot = useMemo(() => {
     if (!selectedKey) return null;
@@ -146,8 +132,11 @@ export default function ScheduleOverlap({ members, heatmapColor = "blue", onConf
             {DAY_LABELS.map((label, i) => (
               <div key={i} className="text-center">
                 <span
-                  className={`text-sm font-extrabold ${i >= 5 ? "text-on-surface-variant/40" : "text-on-surface"}`}
-                  style={{ fontFamily: "var(--font-manrope)" }}
+                  className="text-sm font-extrabold"
+                  style={{
+                    fontFamily: "var(--font-manrope)",
+                    color: i === 5 ? "#2a4dd7" : i === 6 ? "#e11d48" : "var(--color-on-surface)",
+                  }}
                 >
                   {label}
                 </span>
@@ -170,7 +159,6 @@ export default function ScheduleOverlap({ members, heatmapColor = "blue", onConf
                   const busyList   = getBusyMembers(members, activeIds, dayIdx, hour);
                   const ratio      = activeCount > 0 ? busyList.length / activeCount : 0;
                   const isSelected = selectedKey === key;
-                  const isOptimal  = optimalKey === key;
                   const isWeekend  = dayIdx >= 5;
 
                   return (
@@ -195,15 +183,6 @@ export default function ScheduleOverlap({ members, heatmapColor = "blue", onConf
                           : "",
                       ].join(" ")}
                     >
-                      {/* Optimal 배지 */}
-                      {isOptimal && (
-                        <span
-                          className="absolute inset-0 flex items-center justify-center text-[9px] font-bold uppercase tracking-tight"
-                          style={{ color: heatOpt.hex }}
-                        >
-                          Optimal
-                        </span>
-                      )}
                       {/* busy 카운트 hover */}
                       {busyList.length > 0 && (
                         <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity">

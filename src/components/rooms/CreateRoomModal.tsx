@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { RoomColor, RoomIcon, COLOR_CONFIG } from "@/types/room";
+import { RoomColor, RoomIcon, ROOM_COLOR_OPTIONS, getRoomColorHex, hexToRgba } from "@/types/room";
 import RoomIconEl from "./RoomIcon";
 
 interface CreateRoomModalProps {
@@ -10,26 +10,19 @@ interface CreateRoomModalProps {
   onSave: (data: { name: string; description: string; color: RoomColor; icon: RoomIcon }) => void;
 }
 
-const COLORS: { value: RoomColor; label: string }[] = [
-  { value: "primary",           label: "블루" },
-  { value: "secondary",         label: "인디고" },
-  { value: "tertiary",          label: "오렌지" },
-  { value: "primary-container", label: "퍼플" },
-];
-
 const ICONS: RoomIcon[] = ["rocket", "people", "science", "palette", "code", "book", "music", "sports"];
 
 export default function CreateRoomModal({ open, onClose, onSave }: CreateRoomModalProps) {
   const [name,        setName]        = useState("");
   const [description, setDescription] = useState("");
-  const [color,       setColor]       = useState<RoomColor>("primary");
+  const [color,       setColor]       = useState<RoomColor>("blue");
   const [icon,        setIcon]        = useState<RoomIcon>("rocket");
 
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
-      setName(""); setDescription(""); setColor("primary"); setIcon("rocket");
+      setName(""); setDescription(""); setColor("blue"); setIcon("rocket");
       setTimeout(() => nameRef.current?.focus(), 60);
     }
   }, [open]);
@@ -42,7 +35,7 @@ export default function CreateRoomModal({ open, onClose, onSave }: CreateRoomMod
     onClose();
   };
 
-  const colors = COLOR_CONFIG[color];
+  const hex = getRoomColorHex(color);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -66,12 +59,18 @@ export default function CreateRoomModal({ open, onClose, onSave }: CreateRoomMod
 
         <div className="px-6 py-5 flex flex-col gap-5">
           {/* Preview */}
-          <div className={`flex items-center gap-4 p-4 rounded-2xl ${colors.iconBg}`}>
-            <div className={`p-3 rounded-xl ${colors.iconBg} border border-white/40 ${colors.iconText}`}>
+          <div
+            className="flex items-center gap-4 p-4 rounded-2xl"
+            style={{ backgroundColor: hexToRgba(hex, 0.1) }}
+          >
+            <div
+              className="p-3 rounded-xl border border-white/40"
+              style={{ backgroundColor: hexToRgba(hex, 0.15), color: hex }}
+            >
               <RoomIconEl icon={icon} />
             </div>
             <div>
-              <p className={`text-sm font-bold ${colors.iconText}`}>{name || "Room 이름"}</p>
+              <p className="text-sm font-bold" style={{ color: hex }}>{name || "Room 이름"}</p>
               <p className="text-xs text-on-surface-variant mt-0.5 line-clamp-1">{description || "설명을 입력하세요"}</p>
             </div>
           </div>
@@ -101,23 +100,24 @@ export default function CreateRoomModal({ open, onClose, onSave }: CreateRoomMod
             />
           </div>
 
-          {/* Color */}
+          {/* Color — 원형 선택기 */}
           <div>
             <label className="label-field">색상</label>
-            <div className="flex gap-2">
-              {COLORS.map((c) => {
-                const cfg = COLOR_CONFIG[c.value];
+            <div className="flex gap-3 flex-wrap">
+              {ROOM_COLOR_OPTIONS.map((c) => {
                 const sel = color === c.value;
                 return (
                   <button
                     key={c.value}
                     onClick={() => setColor(c.value)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${cfg.iconBg} ${cfg.iconText} ${
-                      sel ? "ring-2 ring-current" : "opacity-60 hover:opacity-100"
-                    }`}
-                  >
-                    {c.label}
-                  </button>
+                    title={c.label}
+                    className="w-8 h-8 rounded-full transition-all hover:scale-110"
+                    style={{
+                      backgroundColor: c.hex,
+                      boxShadow: sel ? `0 0 0 3px white, 0 0 0 5px ${c.hex}` : "none",
+                      transform: sel ? "scale(1.15)" : undefined,
+                    }}
+                  />
                 );
               })}
             </div>
@@ -131,11 +131,15 @@ export default function CreateRoomModal({ open, onClose, onSave }: CreateRoomMod
                 <button
                   key={ic}
                   onClick={() => setIcon(ic)}
-                  className={`aspect-square flex items-center justify-center rounded-xl transition-all ${
+                  className="aspect-square flex items-center justify-center rounded-xl transition-all"
+                  style={
                     icon === ic
-                      ? `${colors.iconBg} ${colors.iconText} ring-2 ring-current`
-                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                  }`}
+                      ? { backgroundColor: hexToRgba(hex, 0.15), color: hex, outline: `2px solid ${hex}` }
+                      : {}
+                  }
+                  {...(icon !== ic && {
+                    className: "aspect-square flex items-center justify-center rounded-xl transition-all bg-surface-container text-on-surface-variant hover:bg-surface-container-high",
+                  })}
                 >
                   <RoomIconEl icon={ic} />
                 </button>

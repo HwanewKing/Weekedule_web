@@ -1,7 +1,6 @@
 import { CalendarEvent } from "./event";
 
-export type RoomStatus = "active" | "waiting" | "archived";
-export type RoomColor = "primary" | "secondary" | "tertiary" | "primary-container";
+export type RoomColor = "blue" | "violet" | "teal" | "green" | "orange" | "rose" | "amber" | "indigo";
 export type RoomIcon = "rocket" | "people" | "science" | "palette" | "code" | "book" | "music" | "sports";
 
 export interface RoomMember {
@@ -16,7 +15,6 @@ export interface Room {
   id: string;
   name: string;
   description: string;
-  status: RoomStatus;
   color: RoomColor;
   icon: RoomIcon;
   members: RoomMember[];
@@ -53,6 +51,31 @@ export const HEATMAP_COLOR_OPTIONS: { id: string; hex: string; label: string }[]
   { id: "rose",   hex: "#be123c", label: "Rose"   },
 ];
 
+// ── Room 색상 옵션 (8가지) ────────────────────────────────────
+export const ROOM_COLOR_OPTIONS: { value: RoomColor; hex: string; label: string }[] = [
+  { value: "blue",   hex: "#2a4dd7", label: "Blue"   },
+  { value: "violet", hex: "#6d28d9", label: "Violet" },
+  { value: "teal",   hex: "#0f766e", label: "Teal"   },
+  { value: "green",  hex: "#16a34a", label: "Green"  },
+  { value: "orange", hex: "#ea580c", label: "Orange" },
+  { value: "rose",   hex: "#e11d48", label: "Rose"   },
+  { value: "amber",  hex: "#d97706", label: "Amber"  },
+  { value: "indigo", hex: "#4f46e5", label: "Indigo" },
+];
+
+/** hex → rgba(r,g,b,alpha) */
+export function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/** RoomColor → hex */
+export function getRoomColorHex(color: RoomColor): string {
+  return ROOM_COLOR_OPTIONS.find((c) => c.value === color)?.hex ?? "#2a4dd7";
+}
+
 /** colorId → { backgroundColor, color } inline style 객체 */
 export function getMemberStyle(colorId: string): { backgroundColor: string; color: string } {
   const opt = MEMBER_COLOR_OPTIONS.find((o) => o.id === colorId) ?? MEMBER_COLOR_OPTIONS[0];
@@ -70,19 +93,6 @@ export function getHeatStyle(ratio: number, heatmapColorId: string): { backgroun
   const alpha = ratio <= 0.25 ? 0.15 : ratio <= 0.5 ? 0.35 : ratio <= 0.75 ? 0.6 : 0.85;
   return { backgroundColor: `rgba(${r},${g},${b},${alpha})` };
 }
-
-export const STATUS_CONFIG: Record<RoomStatus, { label: string; bg: string; text: string }> = {
-  active:   { label: "Active",   bg: "bg-[#dcfce7]", text: "text-[#16a34a]" },
-  waiting:  { label: "Waiting",  bg: "bg-surface-container-high", text: "text-on-surface-variant" },
-  archived: { label: "Archived", bg: "bg-surface-dim", text: "text-on-surface-variant" },
-};
-
-export const COLOR_CONFIG: Record<RoomColor, { accent: string; iconBg: string; iconText: string }> = {
-  "primary":           { accent: "bg-primary",           iconBg: "bg-primary-fixed",       iconText: "text-primary" },
-  "secondary":         { accent: "bg-secondary",         iconBg: "bg-secondary-fixed",     iconText: "text-secondary" },
-  "tertiary":          { accent: "bg-tertiary",          iconBg: "bg-tertiary-fixed",      iconText: "text-tertiary" },
-  "primary-container": { accent: "bg-primary-container", iconBg: "bg-secondary-container", iconText: "text-on-secondary-container" },
-};
 
 /** 하위 호환: colorIdx → colorId */
 export function colorIdxToId(idx: number): string {

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/layout/Sidebar";
+import AuthGuard from "@/components/providers/AuthGuard";
 import ThemeProvider from "@/components/providers/ThemeProvider";
 
 const inter = Inter({
@@ -30,8 +30,7 @@ export default function RootLayout({
     <html lang="ko" className={`${inter.variable} ${manrope.variable} h-full`}>
       <body className="bg-surface text-on-surface font-sans antialiased flex h-full overflow-hidden">
         <ThemeProvider>
-          <Sidebar />
-          <div className="flex-1 flex flex-col overflow-hidden min-w-0">{children}</div>
+          <AuthGuard>{children}</AuthGuard>
         </ThemeProvider>
       </body>
     </html>

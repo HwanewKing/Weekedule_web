@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useFriendStore } from "@/lib/friendStore";
 import { useNotificationStore } from "@/lib/notificationStore";
 import { useSettingsStore } from "@/lib/settingsStore";
+import { useAuthStore } from "@/lib/authStore";
 
 const NAV_LABELS = {
   ko: { "/": "시간표", "/rooms": "Rooms", "/friends": "친구", "/notifications": "알림", "/settings": "설정" },
@@ -52,9 +53,18 @@ type NavHref = typeof NAV_HREFS[number];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router   = useRouter();
   const { pendingRequests } = useFriendStore();
   const { notifications } = useNotificationStore();
-  const { displayName, language } = useSettingsStore();
+  const { language } = useSettingsStore();
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    router.replace("/login");
+  };
+
+  const displayName = user?.name ?? "Guest";
 
   const unreadNotifCount = notifications.filter((n) => !n.read).length;
   const labels = NAV_LABELS[language];
@@ -118,16 +128,27 @@ export default function Sidebar() {
       </nav>
 
       {/* User */}
-      <div className="px-3 pb-5 pt-3">
+      <div className="px-3 pb-5 pt-3 flex flex-col gap-1">
         <div className="flex items-center gap-3 px-3 py-2.5 bg-surface-container rounded-xl">
           <div className="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-xs font-bold text-primary shrink-0">
             {initials}
           </div>
-          <div className="overflow-hidden">
+          <div className="overflow-hidden flex-1 min-w-0">
             <p className="text-sm font-semibold text-on-surface truncate leading-tight">{displayName}</p>
-            <p className="text-[10px] text-on-surface-variant truncate">Premium Account</p>
+            <p className="text-[10px] text-on-surface-variant truncate">{user?.email ?? ""}</p>
           </div>
         </div>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          로그아웃
+        </button>
       </div>
     </aside>
   );

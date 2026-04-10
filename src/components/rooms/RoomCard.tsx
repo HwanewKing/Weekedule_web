@@ -1,6 +1,6 @@
 "use client";
 
-import { Room, STATUS_CONFIG, COLOR_CONFIG, getMemberStyle } from "@/types/room";
+import { Room, getMemberStyle, getRoomColorHex, hexToRgba } from "@/types/room";
 import RoomIconEl from "./RoomIcon";
 import Link from "next/link";
 
@@ -10,8 +10,7 @@ interface RoomCardProps {
 }
 
 export default function RoomCard({ room, featured = false }: RoomCardProps) {
-  const status  = STATUS_CONFIG[room.status];
-  const colors  = COLOR_CONFIG[room.color];
+  const hex     = getRoomColorHex(room.color);
   const extra   = room.members.length > 3 ? room.members.length - 3 : 0;
   const visible = room.members.slice(0, 3);
 
@@ -23,19 +22,22 @@ export default function RoomCard({ room, featured = false }: RoomCardProps) {
       }`}
     >
       {/* Left accent pill */}
-      <div className={`absolute left-0 top-10 w-[3px] h-10 rounded-r-full ${colors.accent}`} />
+      <div
+        className="absolute left-0 top-10 w-[3px] h-10 rounded-r-full"
+        style={{ backgroundColor: hex }}
+      />
 
       <div className={featured ? "flex flex-col md:flex-row gap-8" : "flex flex-col h-full"}>
         {/* Main content */}
         <div className="flex-1 flex flex-col">
           {/* Top row */}
           <div className="flex items-start justify-between mb-5">
-            <div className={`p-3 rounded-2xl ${colors.iconBg} ${colors.iconText}`}>
+            <div
+              className="p-3 rounded-2xl"
+              style={{ backgroundColor: hexToRgba(hex, 0.12), color: hex }}
+            >
               <RoomIconEl icon={room.icon} />
             </div>
-            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${status.bg} ${status.text}`}>
-              {status.label}
-            </span>
           </div>
 
           {/* Info */}
@@ -68,8 +70,11 @@ export default function RoomCard({ room, featured = false }: RoomCardProps) {
               )}
             </div>
 
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${colors.iconBg} group-hover:${colors.accent}`}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={colors.iconText}>
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+              style={{ backgroundColor: hexToRgba(hex, 0.12), color: hex }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6"/>
               </svg>
             </div>
@@ -92,7 +97,8 @@ export default function RoomCard({ room, featured = false }: RoomCardProps) {
             </div>
             <button
               onClick={(e) => { e.preventDefault(); }}
-              className="w-full py-2.5 rounded-xl text-xs font-bold text-primary border border-primary/20 hover:bg-primary/5 transition-colors flex items-center justify-center gap-1"
+              className="w-full py-2.5 rounded-xl text-xs font-bold border transition-colors flex items-center justify-center gap-1"
+              style={{ color: hex, borderColor: hexToRgba(hex, 0.2) }}
             >
               Join Room
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

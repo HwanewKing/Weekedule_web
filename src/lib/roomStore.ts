@@ -119,8 +119,7 @@ const SEED_ROOMS: Room[] = [
     id: "r1",
     name: "Team Project A",
     description: "분기별 로드맵 동기화와 핵심 플랫폼 아키텍처 리뷰 미팅",
-    status: "active",
-    color: "primary",
+    color: "blue",
     icon: "rocket",
     heatmapColor: "blue",
     members: [
@@ -138,8 +137,7 @@ const SEED_ROOMS: Room[] = [
     id: "r2",
     name: "Club Managers",
     description: "동아리 대표들을 위한 캠퍼스 이벤트 조율 및 예산 배분 주간 싱크",
-    status: "waiting",
-    color: "tertiary",
+    color: "orange",
     icon: "people",
     heatmapColor: "teal",
     members: [
@@ -152,8 +150,7 @@ const SEED_ROOMS: Room[] = [
     id: "r3",
     name: "Research Hub",
     description: "AI 윤리와 지속 가능한 기술 성장에 집중하는 학제 간 연구 그룹",
-    status: "active",
-    color: "secondary",
+    color: "violet",
     icon: "science",
     heatmapColor: "violet",
     members: [
@@ -167,8 +164,7 @@ const SEED_ROOMS: Room[] = [
     id: "r4",
     name: "Design Critique & Feedback",
     description: "UI/UX 팀의 피처 플로우와 브랜드 에셋 리뷰 데일리 세션",
-    status: "active",
-    color: "primary-container",
+    color: "rose",
     icon: "palette",
     heatmapColor: "rose",
     members: [
@@ -192,7 +188,6 @@ export const useRoomStore = create<RoomStore>((set) => ({
           id: crypto.randomUUID(),
           name,
           description,
-          status: "waiting",
           color,
           icon,
           heatmapColor: "blue",

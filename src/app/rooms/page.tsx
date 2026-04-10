@@ -10,9 +10,6 @@ export default function RoomsPage() {
   const { rooms, addRoom } = useRoomStore();
   const [modalOpen, setModalOpen] = useState(false);
 
-  const activeCount  = rooms.filter((r) => r.status === "active").length;
-  const waitingCount = rooms.filter((r) => r.status === "waiting").length;
-
   // 마지막 카드를 featured(wide)로
   const featured = rooms.find((r) => r.id === "r4");
   const regular  = rooms.filter((r) => r.id !== "r4");
@@ -58,15 +55,10 @@ export default function RoomsPage() {
             </p>
           </div>
 
-          {/* Stats */}
-          <div className="flex gap-2 shrink-0">
+          <div className="shrink-0">
             <span className="inline-flex items-center gap-2 rounded-full bg-surface-container-high px-4 py-2 text-sm font-semibold text-on-surface">
-              <span className="w-2 h-2 rounded-full bg-[#16a34a]" />
-              Active {activeCount}
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-full bg-surface-container-low px-4 py-2 text-sm font-semibold text-on-surface-variant">
-              <span className="w-2 h-2 rounded-full bg-outline" />
-              Waiting {waitingCount}
+              <span className="w-2 h-2 rounded-full bg-primary" />
+              {rooms.length}개 Room
             </span>
           </div>
         </section>
