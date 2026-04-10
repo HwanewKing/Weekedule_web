@@ -57,13 +57,9 @@ export const useAuthStore = create<AuthStore>()(
     (set, get) => ({
       user: null,
       users: [
-        {
-          id: "test-user-1",
-          name: "테스트 유저",
-          email: "test@weekedule.app",
-          password: "test1234",
-          verified: true,
-        },
+        { id: "test-user-1", name: "테스트 유저",  email: "test@weekedule.app",  password: "test1234", verified: true },
+        { id: "test-user-2", name: "김철수",       email: "chulsoo@weekedule.app", password: "test1234", verified: true },
+        { id: "test-user-3", name: "이영희",       email: "younghee@weekedule.app", password: "test1234", verified: true },
       ],
       pending: null,
 
@@ -113,6 +109,25 @@ export const useAuthStore = create<AuthStore>()(
 
       clearPending: () => set({ pending: null }),
     }),
-    { name: "weekedule-auth" }
+    {
+      name: "weekedule-auth",
+      version: 1,
+      migrate: (stored: unknown) => {
+        // v1: 시드 계정 3개를 항상 포함 보장
+        const s = stored as { state?: { users?: StoredUser[]; user?: AuthUser | null; pending?: PendingVerification | null } };
+        const existingUsers: StoredUser[] = s?.state?.users ?? [];
+        const SEED_USERS: StoredUser[] = [
+          { id: "test-user-1", name: "테스트 유저",  email: "test@weekedule.app",   password: "test1234", verified: true },
+          { id: "test-user-2", name: "김철수",        email: "chulsoo@weekedule.app", password: "test1234", verified: true },
+          { id: "test-user-3", name: "이영희",        email: "younghee@weekedule.app", password: "test1234", verified: true },
+        ];
+        // 시드 계정 없으면 추가
+        const merged = [...SEED_USERS];
+        for (const u of existingUsers) {
+          if (!merged.find((m) => m.id === u.id)) merged.push(u);
+        }
+        return { ...s?.state, users: merged };
+      },
+    }
   )
 );

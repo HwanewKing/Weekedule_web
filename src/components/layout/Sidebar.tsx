@@ -54,11 +54,11 @@ type NavHref = typeof NAV_HREFS[number];
 export default function Sidebar() {
   const pathname = usePathname();
   const router   = useRouter();
+  const { user, logout } = useAuthStore();
   const { relations } = useFriendStore();
   const pendingRequests = getPendingReceived(relations, user?.id ?? "");
   const { notifications } = useNotificationStore();
   const { language } = useSettingsStore();
-  const { user, logout } = useAuthStore();
 
   const handleLogout = () => {
     logout();
