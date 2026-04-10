@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRoomStore } from "@/lib/roomStore";
+import { useSettingsStore } from "@/lib/settingsStore";
 import RoomCard from "@/components/rooms/RoomCard";
 import CreateRoomModal from "@/components/rooms/CreateRoomModal";
 import { RoomColor, RoomIcon } from "@/types/room";
 
 export default function RoomsPage() {
   const { rooms, addRoom } = useRoomStore();
+  const { language } = useSettingsStore();
   const [modalOpen, setModalOpen] = useState(false);
 
   // 마지막 카드를 featured(wide)로
@@ -48,10 +50,12 @@ export default function RoomsPage() {
               className="text-4xl font-extrabold text-on-surface tracking-tight leading-tight mb-3"
               style={{ fontFamily: "var(--font-manrope)" }}
             >
-              Orchestrate your<br />shared momentum.
+              {language === "ko" ? <>팀의 흐름을<br />함께 만들어가세요.</> : <>Orchestrate your<br />shared momentum.</>}
             </h3>
             <p className="text-base text-on-surface-variant leading-relaxed">
-              Shared rooms are the pulse of your productivity. Join, manage, and sync your schedules across teams in a fluid editorial environment.
+              {language === "ko"
+                ? "공유 룸은 팀 생산성의 중심입니다. 룸에 참여하고, 관리하며, 팀 전체의 일정을 유연하게 동기화하세요."
+                : "Shared rooms are the pulse of your productivity. Join, manage, and sync your schedules across teams in a fluid editorial environment."}
             </p>
           </div>
 
