@@ -4,7 +4,10 @@
       "Bash(npx tsc:*)",
       "Read(//mnt/c/Users/udown/Desktop/git/**)",
       "Bash(node_modules/.bin/tsc --noEmit)",
-      "Bash(cmd /c \"node_modules\\\\.bin\\\\tsc --noEmit 2>&1\")"
+      "Bash(cmd /c \"node_modules\\\\.bin\\\\tsc --noEmit 2>&1\")",
+      "Bash(cmd /c \"npm run dev\")",
+      "Bash(where npm:*)",
+      "Bash(npm --version)"
     ]
   }
 }

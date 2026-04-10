@@ -56,7 +56,15 @@ export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
       user: null,
-      users: [],
+      users: [
+        {
+          id: "test-user-1",
+          name: "테스트 유저",
+          email: "test@weekedule.app",
+          password: "test1234",
+          verified: true,
+        },
+      ],
       pending: null,
 
       login: (email, password) => {
