@@ -9,7 +9,7 @@ import { NotificationType } from "@/lib/notificationStore";
 const T = {
   ko: {
     pageTitle: "설정",
-    sections: { profile: "프로필", timetable: "시간표", display: "디스플레이", notifications: "알림", about: "앱 정보", feedback: "버그 신고 및 의견" },
+    sections: { profile: "프로필", timetable: "시간표", display: "디스플레이", notifications: "알림", about: "앱 정보" },
     profile: {
       title: "프로필", subtitle: "내 계정 정보를 관리하세요",
       displayName: "표시 이름", accountType: "계정 유형",
@@ -44,17 +44,10 @@ const T = {
       versionTitle: "버전 정보", version: "버전", build: "빌드", platform: "플랫폼",
       legalTitle: "법적 정보", tos: "서비스 이용약관", privacy: "개인정보 처리방침", oss: "오픈소스 라이선스",
     },
-    feedback: {
-      title: "버그 신고 및 의견", subtitle: "불편한 점이나 개선 아이디어를 알려주세요",
-      typeLabel: "유형", subjectLabel: "제목 (선택)", messageLabel: "내용",
-      types: { bug: "🐛 버그 신고", suggestion: "💡 기능 제안", other: "💬 기타 의견" },
-      placeholder: "자세한 내용을 입력해주세요...",
-      send: "전송", sending: "전송 중...", sent: "전송됐어요 ✓", error: "전송 실패 — 잠시 후 다시 시도해주세요",
-    },
   },
   en: {
     pageTitle: "Settings",
-    sections: { profile: "Profile", timetable: "Timetable", display: "Display", notifications: "Notifications", about: "About", feedback: "Feedback" },
+    sections: { profile: "Profile", timetable: "Timetable", display: "Display", notifications: "Notifications", about: "About" },
     profile: {
       title: "Profile", subtitle: "Manage your account information",
       displayName: "Display name", accountType: "Account type",
@@ -88,13 +81,6 @@ const T = {
       title: "About", subtitle: "Information about Weekedule",
       versionTitle: "Version info", version: "Version", build: "Build", platform: "Platform",
       legalTitle: "Legal", tos: "Terms of Service", privacy: "Privacy Policy", oss: "Open-source licenses",
-    },
-    feedback: {
-      title: "Bug Report & Feedback", subtitle: "Let us know about issues or ideas",
-      typeLabel: "Type", subjectLabel: "Subject (optional)", messageLabel: "Message",
-      types: { bug: "🐛 Bug report", suggestion: "💡 Suggestion", other: "💬 Other" },
-      placeholder: "Please describe in detail...",
-      send: "Send", sending: "Sending...", sent: "Sent ✓", error: "Failed to send — please try again",
     },
   },
 } as const;
@@ -230,7 +216,7 @@ function ThemeCard({ value, active, label, desc, onClick }: {
 }
 
 // ── 섹션 네비 ────────────────────────────────────────────────────
-type SettingSection = "profile" | "timetable" | "display" | "notifications" | "about" | "feedback";
+type SettingSection = "profile" | "timetable" | "display" | "notifications" | "about";
 
 const SECTION_ICONS: Record<SettingSection, React.ReactNode> = {
   profile: (
@@ -265,11 +251,6 @@ const SECTION_ICONS: Record<SettingSection, React.ReactNode> = {
       <line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
     </svg>
   ),
-  feedback: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    </svg>
-  ),
 };
 
 // ── 메인 ────────────────────────────────────────────────────────
@@ -292,36 +273,6 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingSection>("profile");
   const [nameInput,     setNameInput]     = useState(displayName);
   const [nameSaved,     setNameSaved]     = useState(false);
-
-  // 피드백 상태
-  const [fbType,    setFbType]    = useState<"bug" | "suggestion" | "other">("bug");
-  const [fbSubject, setFbSubject] = useState("");
-  const [fbMessage, setFbMessage] = useState("");
-  const [fbStatus,  setFbStatus]  = useState<"idle" | "sending" | "sent" | "error">("idle");
-
-  const handleSendFeedback = async () => {
-    if (!fbMessage.trim() || fbStatus === "sending") return;
-    setFbStatus("sending");
-    try {
-      const res = await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: fbType, subject: fbSubject, message: fbMessage }),
-      });
-      if (res.ok) {
-        setFbStatus("sent");
-        setFbMessage("");
-        setFbSubject("");
-        setTimeout(() => setFbStatus("idle"), 3000);
-      } else {
-        setFbStatus("error");
-        setTimeout(() => setFbStatus("idle"), 3000);
-      }
-    } catch {
-      setFbStatus("error");
-      setTimeout(() => setFbStatus("idle"), 3000);
-    }
-  };
 
   // 비밀번호 상태
   const [showPwForm, setShowPwForm] = useState(false);
@@ -349,7 +300,7 @@ export default function SettingsPage() {
   };
 
   const initials = displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-  const SECTIONS: SettingSection[] = ["profile", "timetable", "display", "notifications", "about", "feedback"];
+  const SECTIONS: SettingSection[] = ["profile", "timetable", "display", "notifications", "about"];
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
@@ -642,87 +593,6 @@ export default function SettingsPage() {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-on-surface-variant"><polyline points="9 18 15 12 9 6" /></svg>
                   </Row>
                 </Section>
-              </>
-            )}
-
-            {/* ── 버그 신고 및 의견 ── */}
-            {activeSection === "feedback" && (
-              <>
-                <div>
-                  <h1 className="text-2xl font-extrabold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>{t.feedback.title}</h1>
-                  <p className="text-sm text-on-surface-variant mt-1">{t.feedback.subtitle}</p>
-                </div>
-
-                <div className="flex flex-col gap-5 bg-surface-container-lowest rounded-3xl border border-outline-variant/10 p-6">
-                  {/* 유형 선택 */}
-                  <div>
-                    <p className="text-xs font-semibold text-on-surface-variant mb-2">{t.feedback.typeLabel}</p>
-                    <div className="flex gap-2 flex-wrap">
-                      {(["bug", "suggestion", "other"] as const).map((type) => (
-                        <button
-                          key={type}
-                          onClick={() => setFbType(type)}
-                          className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                            fbType === type
-                              ? "bg-primary text-on-primary"
-                              : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                          }`}
-                        >
-                          {t.feedback.types[type]}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 제목 */}
-                  <div>
-                    <label className="label-field">{t.feedback.subjectLabel}</label>
-                    <input
-                      value={fbSubject}
-                      onChange={(e) => setFbSubject(e.target.value)}
-                      placeholder="한 줄로 요약해주세요"
-                      className="field"
-                      maxLength={100}
-                    />
-                  </div>
-
-                  {/* 내용 */}
-                  <div>
-                    <label className="label-field">{t.feedback.messageLabel}</label>
-                    <textarea
-                      value={fbMessage}
-                      onChange={(e) => setFbMessage(e.target.value)}
-                      placeholder={t.feedback.placeholder}
-                      rows={6}
-                      className="field resize-none"
-                      maxLength={2000}
-                    />
-                    <p className="text-[10px] text-on-surface-variant text-right mt-1">{fbMessage.length}/2000</p>
-                  </div>
-
-                  {/* 전송 버튼 */}
-                  <button
-                    onClick={handleSendFeedback}
-                    disabled={!fbMessage.trim() || fbStatus === "sending" || fbStatus === "sent"}
-                    className={`w-full py-3 rounded-2xl text-sm font-bold transition-all ${
-                      fbStatus === "sent"
-                        ? "bg-green-500/20 text-green-600"
-                        : fbStatus === "error"
-                        ? "bg-error/10 text-error"
-                        : "btn-gradient text-on-primary"
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    {fbStatus === "sending" ? t.feedback.sending
-                      : fbStatus === "sent" ? t.feedback.sent
-                      : fbStatus === "error" ? t.feedback.error
-                      : t.feedback.send}
-                  </button>
-                </div>
-
-                {/* 안내 */}
-                <p className="text-xs text-on-surface-variant text-center">
-                  접수된 의견은 개발팀이 직접 검토합니다 🙏
-                </p>
               </>
             )}
 
