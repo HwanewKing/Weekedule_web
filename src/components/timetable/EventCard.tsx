@@ -7,10 +7,15 @@ interface EventCardProps {
   event: CalendarEvent;
   slotHeightPx: number;
   hourStart: number;
+  col: number;       // 겹침 그룹 내 열 인덱스 (0-based)
+  totalCols: number; // 겹침 그룹 내 총 열 수
   onClick: (event: CalendarEvent) => void;
 }
 
-export default function EventCard({ event, slotHeightPx, hourStart, onClick }: EventCardProps) {
+const PAD = 6; // 컬럼 좌우 기본 패딩 px
+const GAP = 2; // 겹칠 때 카드 사이 간격 px
+
+export default function EventCard({ event, slotHeightPx, hourStart, col, totalCols, onClick }: EventCardProps) {
   const startMin = timeToMinutes(event.startTime);
   const endMin   = timeToMinutes(event.endTime);
   const durationMin = endMin - startMin;
@@ -23,10 +28,21 @@ export default function EventCard({ event, slotHeightPx, hourStart, onClick }: E
   const color = cat?.color ?? "#9E9E9E";
   const styles = getCategoryStyle(color);
 
+  // 겹침 레이아웃: left/width 를 퍼센트 + px 보정으로 계산
+  const leftPct  = (col / totalCols) * 100;
+  const widthPct = (1 / totalCols) * 100;
+  const leftPx   = col === 0 ? PAD : GAP;
+  const rightPx  = col === totalCols - 1 ? PAD : GAP;
+
   return (
     <div
-      className="absolute inset-x-1.5 event-card rounded-xl overflow-hidden cursor-pointer bg-surface-container-lowest z-10"
-      style={{ top: topPx + 2, height: Math.max(heightPx - 4, 24) }}
+      className="absolute event-card rounded-xl overflow-hidden cursor-pointer bg-surface-container-lowest z-10"
+      style={{
+        top:    topPx + 2,
+        height: Math.max(heightPx - 4, 24),
+        left:   `calc(${leftPct}% + ${leftPx}px)`,
+        width:  `calc(${widthPct}% - ${leftPx + rightPx}px)`,
+      }}
       onClick={() => onClick(event)}
     >
       {/* Left accent pill */}
