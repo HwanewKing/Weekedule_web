@@ -9,7 +9,7 @@ interface RoomInput {
 }
 
 export async function listRooms(userId: string) {
-  return db.room.findMany({
+  const rooms = await db.room.findMany({
     where: {
       OR: [
         { ownerId: userId },
@@ -26,6 +26,26 @@ export async function listRooms(userId: string) {
     },
     orderBy: { createdAt: "desc" },
   });
+
+  // 모든 룸 멤버의 개인 CalendarEvent를 한 번에 가져옴 (personalEvents for ScheduleOverlap)
+  const allUserIds = [...new Set(rooms.flatMap((r) => r.members.map((m) => m.userId)))];
+  const personalEvents = allUserIds.length > 0
+    ? await db.calendarEvent.findMany({ where: { userId: { in: allUserIds } } })
+    : [];
+
+  const eventsByUser = new Map<string, typeof personalEvents>();
+  for (const e of personalEvents) {
+    if (!eventsByUser.has(e.userId)) eventsByUser.set(e.userId, []);
+    eventsByUser.get(e.userId)!.push(e);
+  }
+
+  return rooms.map((room) => ({
+    ...room,
+    members: room.members.map((m) => ({
+      ...m,
+      personalEvents: eventsByUser.get(m.userId) ?? [],
+    })),
+  }));
 }
 
 export async function createRoom(ownerId: string, data: RoomInput) {
