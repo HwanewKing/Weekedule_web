@@ -102,7 +102,8 @@ export default function EventModal({ open, editEvent, defaultDay = 0, onClose, o
 
   const [title,       setTitle]       = useState("");
   const [description, setDescription] = useState("");
-  const [category,    setCategory]    = useState("meeting");
+  // 기본값을 "meeting" 하드코딩 대신 스토어 첫 번째 카테고리로 설정
+  const [category,    setCategory]    = useState(() => useCategoryStore.getState().categories[0]?.id ?? "");
   const [slots,       setSlots]       = useState<TimeSlot[]>(() => [newSlot(defaultDay)]);
   const [confirmDel,  setConfirmDel]  = useState(false);
   const [catPanel,    setCatPanel]    = useState<
@@ -131,7 +132,8 @@ export default function EventModal({ open, editEvent, defaultDay = 0, onClose, o
     } else {
       setTitle("");
       setDescription("");
-      setCategory("meeting");
+      // 모달이 열릴 때 첫 번째 실제 카테고리로 초기화
+      setCategory(categories[0]?.id ?? "");
       setSlots([newSlot(defaultDay)]);
     }
     setTimeout(() => titleRef.current?.focus(), 60);

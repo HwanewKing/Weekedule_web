@@ -7,7 +7,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const userId = await requireAuth();
     const { id } = await params;
     const body = await req.json();
-    await updateEvent(id, userId, body);
+    const { category, ...rest } = body;
+    const payload = { ...rest, ...(category !== undefined ? { categoryId: category } : {}) };
+    await updateEvent(id, userId, payload);
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof NextResponse) return err;
