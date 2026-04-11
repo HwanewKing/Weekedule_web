@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import {
   CalendarEvent,
-  DAY_LABELS,
   generateTimeOptions,
 } from "@/types/event";
 import {
@@ -11,11 +10,81 @@ import {
   getCategoryStyle,
   PRESET_COLORS,
 } from "@/lib/categoryStore";
+import { useSettingsStore } from "@/lib/settingsStore";
+
+// ── i18n ──────────────────────────────────────────────────────────
+const T = {
+  ko: {
+    titleNew:        "새 일정 추가",
+    titleEdit:       "일정 편집",
+    titleGroup:      (n: number) => `그룹 일정 편집 (${n}개)`,
+    subNew:          "요일·시간을 추가해 반복 일정을 한번에 등록하세요",
+    subEdit:         "내용을 수정하거나 삭제하세요",
+    subGroup:        "함께 등록된 일정을 한번에 수정하세요",
+    labelTitle:      "일정 제목",
+    placeholderTitle:"예: 운영체제, 팀 미팅...",
+    labelCategory:   "카테고리",
+    addCategory:     "추가",
+    labelSlots:      "요일 & 시간",
+    slotCount:       (n: number) => `${n}개 슬롯`,
+    locationPlaceholder: (i: number) => `장소 (선택) ${i + 1}`,
+    addSlot:         "시간 및 장소 추가",
+    labelMemo:       "메모 (선택)",
+    placeholderMemo: "추가 메모...",
+    btnDelete:       "삭제",
+    btnDeleteGroup:  "전체 삭제",
+    btnDeleteConfirm:"정말 삭제",
+    btnCancel:       "취소",
+    btnSave:         "저장",
+    btnAdd:          (n: number) => n > 1 ? `${n}개 추가` : "추가",
+    btnSaveGroup:    (n: number) => `${n}개 슬롯 저장`,
+    catNamePlaceholder: "카테고리 이름...",
+    catDelete:       "삭제",
+    catCancel:       "취소",
+    catSave:         "저장",
+    catAdd:          "추가",
+    days: ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"],
+  },
+  en: {
+    titleNew:        "Add Event",
+    titleEdit:       "Edit Event",
+    titleGroup:      (n: number) => `Edit Group (${n} slots)`,
+    subNew:          "Add multiple slots to register recurring events at once",
+    subEdit:         "Edit or delete this event",
+    subGroup:        "Edit all events in this group at once",
+    labelTitle:      "Title",
+    placeholderTitle:"e.g. OS Lecture, Team Meeting...",
+    labelCategory:   "Category",
+    addCategory:     "Add",
+    labelSlots:      "Day & Time",
+    slotCount:       (n: number) => `${n} slot${n !== 1 ? "s" : ""}`,
+    locationPlaceholder: (i: number) => `Location (optional) ${i + 1}`,
+    addSlot:         "Add time & location",
+    labelMemo:       "Notes (optional)",
+    placeholderMemo: "Additional notes...",
+    btnDelete:       "Delete",
+    btnDeleteGroup:  "Delete All",
+    btnDeleteConfirm:"Confirm Delete",
+    btnCancel:       "Cancel",
+    btnSave:         "Save",
+    btnAdd:          (n: number) => n > 1 ? `Add ${n}` : "Add",
+    btnSaveGroup:    (n: number) => `Save ${n} slot${n !== 1 ? "s" : ""}`,
+    catNamePlaceholder: "Category name...",
+    catDelete:       "Delete",
+    catCancel:       "Cancel",
+    catSave:         "Save",
+    catAdd:          "Add",
+    days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+  },
+} as const;
+
+type Lang = keyof typeof T;
+type TDict = typeof T[Lang];
 
 interface EventModalProps {
   open: boolean;
-  editEvent?: CalendarEvent | null;   // 단일 이벤트 편집
-  editEvents?: CalendarEvent[] | null; // 그룹 이벤트 편집
+  editEvent?: CalendarEvent | null;
+  editEvents?: CalendarEvent[] | null;
   defaultDay?: number;
   onClose: () => void;
   onSave: (events: Omit<CalendarEvent, "id">[], groupId?: string) => void;
@@ -24,7 +93,7 @@ interface EventModalProps {
 }
 
 interface TimeSlot {
-  _key: string;       // 내부 React key용
+  _key: string;
   dayOfWeek: number;
   startTime: string;
   endTime: string;
@@ -48,11 +117,12 @@ interface CatPanelProps {
   editId: string | null;
   initialLabel?: string;
   initialColor?: string;
+  t: TDict;
   onDone: () => void;
   onDelete?: () => void;
 }
 
-function CategoryPanel({ editId, initialLabel = "", initialColor = "#4F6CF5", onDone, onDelete }: CatPanelProps) {
+function CategoryPanel({ editId, initialLabel = "", initialColor = "#4F6CF5", t, onDone, onDelete }: CatPanelProps) {
   const { addCategory, updateCategory } = useCategoryStore();
   const [label, setLabel] = useState(initialLabel);
   const [color, setColor] = useState(initialColor);
@@ -72,7 +142,7 @@ function CategoryPanel({ editId, initialLabel = "", initialColor = "#4F6CF5", on
         ref={inputRef}
         value={label}
         onChange={(e) => setLabel(e.target.value)}
-        placeholder="카테고리 이름..."
+        placeholder={t.catNamePlaceholder}
         className="field text-sm"
         onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") onDone(); }}
       />
@@ -88,10 +158,16 @@ function CategoryPanel({ editId, initialLabel = "", initialColor = "#4F6CF5", on
       </div>
       <div className="flex gap-2 mt-1">
         {editId && onDelete && (
-          <button onClick={onDelete} className="px-3 py-1.5 rounded-full text-xs font-semibold border border-error/40 text-error hover:bg-error/5 transition-colors">삭제</button>
+          <button onClick={onDelete} className="px-3 py-1.5 rounded-full text-xs font-semibold border border-error/40 text-error hover:bg-error/5 transition-colors">
+            {t.catDelete}
+          </button>
         )}
-        <button onClick={onDone} className="flex-1 py-1.5 rounded-full border border-outline-variant text-xs font-semibold text-on-surface-variant hover:bg-surface-container-high transition-colors">취소</button>
-        <button onClick={handleSave} disabled={!label.trim()} className="flex-1 py-1.5 rounded-full text-xs font-bold text-white transition-colors disabled:opacity-40" style={{ backgroundColor: color }}>{editId ? "저장" : "추가"}</button>
+        <button onClick={onDone} className="flex-1 py-1.5 rounded-full border border-outline-variant text-xs font-semibold text-on-surface-variant hover:bg-surface-container-high transition-colors">
+          {t.catCancel}
+        </button>
+        <button onClick={handleSave} disabled={!label.trim()} className="flex-1 py-1.5 rounded-full text-xs font-bold text-white transition-colors disabled:opacity-40" style={{ backgroundColor: color }}>
+          {editId ? t.catSave : t.catAdd}
+        </button>
       </div>
     </div>
   );
@@ -102,10 +178,11 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
   const isEdit      = !!(editEvent || editEvents);
   const isGroupEdit = !!(editEvents && editEvents.length > 0);
   const { categories, deleteCategory } = useCategoryStore();
+  const { language } = useSettingsStore();
+  const t = T[language as Lang] ?? T.ko;
 
   const [title,       setTitle]       = useState("");
   const [description, setDescription] = useState("");
-  // 기본값을 "meeting" 하드코딩 대신 스토어 첫 번째 카테고리로 설정
   const [category,    setCategory]    = useState(() => useCategoryStore.getState().categories[0]?.id ?? "");
   const [slots,       setSlots]       = useState<TimeSlot[]>(() => [newSlot(defaultDay)]);
   const [confirmDel,  setConfirmDel]  = useState(false);
@@ -123,7 +200,6 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
     setCatPanel(null);
 
     if (editEvents && editEvents.length > 0) {
-      // 그룹 편집 모드: 첫 번째 이벤트에서 공통 정보 가져오기
       const first = editEvents[0];
       setTitle(first.title);
       setDescription(first.description ?? "");
@@ -165,10 +241,9 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
 
   const valid = title.trim() && slots.every((s) => s.startTime < s.endTime);
 
-  // ─ 슬롯 조작 ─
-  const addSlot = () => setSlots((prev) => [...prev, newSlot(prev[prev.length - 1]?.dayOfWeek ?? defaultDay)]);
+  const addSlot    = () => setSlots((prev) => [...prev, newSlot(prev[prev.length - 1]?.dayOfWeek ?? defaultDay)]);
   const removeSlot = (key: string) => setSlots((prev) => prev.filter((s) => s._key !== key));
-  const patchSlot = (key: string, patch: Partial<TimeSlot>) =>
+  const patchSlot  = (key: string, patch: Partial<TimeSlot>) =>
     setSlots((prev) => prev.map((s) => (s._key === key ? { ...s, ...patch } : s)));
 
   const handleSave = () => {
@@ -183,7 +258,6 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
       location:  s.location.trim() || undefined,
     }));
     if (isGroupEdit) {
-      // 그룹 편집: 기존 groupId 유지
       onSave(mapped, editEvents![0].groupId);
     } else {
       onSave(mapped);
@@ -210,10 +284,10 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
         <div className="px-6 pt-6 pb-4 border-b border-outline-variant/10 flex items-start justify-between">
           <div>
             <h2 className="text-xl font-extrabold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
-              {isGroupEdit ? `그룹 일정 편집 (${editEvents!.length}개)` : isEdit ? "일정 편집" : "새 일정 추가"}
+              {isGroupEdit ? t.titleGroup(editEvents!.length) : isEdit ? t.titleEdit : t.titleNew}
             </h2>
             <p className="text-xs text-on-surface-variant mt-0.5">
-              {isGroupEdit ? "함께 등록된 일정을 한번에 수정하세요" : isEdit ? "내용을 수정하거나 삭제하세요" : "요일·시간을 추가해 반복 일정을 한번에 등록하세요"}
+              {isGroupEdit ? t.subGroup : isEdit ? t.subEdit : t.subNew}
             </p>
           </div>
           <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface transition-colors mt-0.5">
@@ -228,12 +302,12 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
 
           {/* 제목 */}
           <div>
-            <label className="label-field">일정 제목</label>
+            <label className="label-field">{t.labelTitle}</label>
             <input
               ref={titleRef}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="예: 운영체제, 팀 미팅..."
+              placeholder={t.placeholderTitle}
               className="field"
               onKeyDown={(e) => e.key === "Enter" && handleSave()}
             />
@@ -242,7 +316,7 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
           {/* 카테고리 */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="label-field mb-0">카테고리</label>
+              <label className="label-field mb-0">{t.labelCategory}</label>
               <button
                 onClick={() => setCatPanel(catPanel?.mode === "new" ? null : { mode: "new" })}
                 className="flex items-center gap-1 text-[10px] font-semibold text-primary hover:opacity-70 transition-opacity"
@@ -250,7 +324,7 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
-                추가
+                {t.addCategory}
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -281,12 +355,13 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
                 );
               })}
             </div>
-            {catPanel?.mode === "new" && <CategoryPanel editId={null} onDone={() => setCatPanel(null)} />}
+            {catPanel?.mode === "new" && <CategoryPanel editId={null} t={t} onDone={() => setCatPanel(null)} />}
             {catPanel?.mode === "edit" && (
               <CategoryPanel
                 editId={catPanel.id}
                 initialLabel={catPanel.label}
                 initialColor={catPanel.color}
+                t={t}
                 onDone={() => setCatPanel(null)}
                 onDelete={() => { deleteCategory(catPanel.id); setCatPanel(null); }}
               />
@@ -296,8 +371,8 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
           {/* 시간 슬롯 목록 */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="label-field mb-0">요일 &amp; 시간</label>
-              <span className="text-[10px] text-on-surface-variant">{slots.length}개 슬롯</span>
+              <label className="label-field mb-0">{t.labelSlots}</label>
+              <span className="text-[10px] text-on-surface-variant">{t.slotCount(slots.length)}</span>
             </div>
 
             <div className="flex flex-col gap-3">
@@ -306,7 +381,6 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
                   key={slot._key}
                   className="rounded-2xl bg-surface-container p-3 flex flex-col gap-2.5"
                 >
-                  {/* 요일 + 시간 행 */}
                   <div className="flex items-center gap-2">
                     {/* 요일 */}
                     <select
@@ -314,8 +388,8 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
                       onChange={(e) => patchSlot(slot._key, { dayOfWeek: Number(e.target.value) })}
                       className="field text-sm flex-1 min-w-0"
                     >
-                      {DAY_LABELS.map((d, i) => (
-                        <option key={i} value={i}>{d}요일</option>
+                      {t.days.map((d, i) => (
+                        <option key={i} value={i}>{d}</option>
                       ))}
                     </select>
 
@@ -333,8 +407,8 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
                       }}
                       className="field text-sm flex-1 min-w-0"
                     >
-                      {TIME_OPTIONS.slice(0, -1).map((t) => (
-                        <option key={t} value={t}>{t}</option>
+                      {TIME_OPTIONS.slice(0, -1).map((tm) => (
+                        <option key={tm} value={tm}>{tm}</option>
                       ))}
                     </select>
 
@@ -344,12 +418,11 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
                       onChange={(e) => patchSlot(slot._key, { endTime: e.target.value })}
                       className="field text-sm flex-1 min-w-0"
                     >
-                      {TIME_OPTIONS.filter((t) => t > slot.startTime).map((t) => (
-                        <option key={t} value={t}>{t}</option>
+                      {TIME_OPTIONS.filter((tm) => tm > slot.startTime).map((tm) => (
+                        <option key={tm} value={tm}>{tm}</option>
                       ))}
                     </select>
 
-                    {/* 삭제 버튼 (슬롯이 2개 이상일 때만) */}
                     {slots.length > 1 && (
                       <button
                         onClick={() => removeSlot(slot._key)}
@@ -365,36 +438,34 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
                     )}
                   </div>
 
-                  {/* 장소 행 */}
                   <input
                     value={slot.location}
                     onChange={(e) => patchSlot(slot._key, { location: e.target.value })}
-                    placeholder={`장소 (선택) ${idx + 1}`}
+                    placeholder={t.locationPlaceholder(idx)}
                     className="field text-sm"
                   />
                 </div>
               ))}
             </div>
 
-            {/* 슬롯 추가 버튼 — 편집/생성 모두 표시 */}
             <button
               onClick={addSlot}
               className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-primary hover:opacity-70 transition-opacity"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                시간 및 장소 추가
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              {t.addSlot}
             </button>
           </div>
 
           {/* 메모 */}
           <div>
-            <label className="label-field">메모 (선택)</label>
+            <label className="label-field">{t.labelMemo}</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="추가 메모..."
+              placeholder={t.placeholderMemo}
               rows={2}
               className="field resize-none"
             />
@@ -410,21 +481,21 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
                 confirmDel ? "bg-error text-on-error" : "border border-error/40 text-error hover:bg-error/5"
               }`}
             >
-              {confirmDel ? "정말 삭제" : isGroupEdit ? "전체 삭제" : "삭제"}
+              {confirmDel ? t.btnDeleteConfirm : isGroupEdit ? t.btnDeleteGroup : t.btnDelete}
             </button>
           )}
           <button
             onClick={onClose}
             className="flex-1 py-2.5 rounded-full border border-outline-variant text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
           >
-            취소
+            {t.btnCancel}
           </button>
           <button
             onClick={handleSave}
             disabled={!valid}
             className="flex-1 py-2.5 rounded-full btn-gradient text-sm font-bold text-on-primary disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
-            {isGroupEdit ? `${slots.length}개 슬롯 저장` : isEdit ? "저장" : slots.length > 1 ? `${slots.length}개 추가` : "추가"}
+            {isGroupEdit ? t.btnSaveGroup(slots.length) : isEdit ? t.btnSave : t.btnAdd(slots.length)}
           </button>
         </div>
       </div>

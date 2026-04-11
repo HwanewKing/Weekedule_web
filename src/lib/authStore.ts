@@ -57,10 +57,12 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       register: async (name, email, password) => {
+        const { useSettingsStore } = await import("./settingsStore");
+        const language = useSettingsStore.getState().language;
         const res = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password }),
+          body: JSON.stringify({ name, email, password, language }),
         });
         const data = await res.json();
         if (!res.ok) return { success: false, error: data.error };

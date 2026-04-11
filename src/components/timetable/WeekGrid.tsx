@@ -6,7 +6,8 @@ import EventCard from "./EventCard";
 
 const SLOT_HEIGHT_PX = 64;
 
-const ALL_DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+const DAY_LABELS_KO = ["월", "화", "수", "목", "금", "토", "일"];
+const DAY_LABELS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 // dayOfWeek 0=월 … 6=일
 
 interface WeekGridProps {
@@ -64,7 +65,8 @@ function computeOverlapLayout(events: CalendarEvent[]): EventLayout[] {
 }
 
 export default function WeekGrid({ events, onEventClick }: WeekGridProps) {
-  const { gridStart, gridEnd, showWeekends, startOfWeek } = useSettingsStore();
+  const { gridStart, gridEnd, showWeekends, startOfWeek, language } = useSettingsStore();
+  const ALL_DAY_LABELS = language === "en" ? DAY_LABELS_EN : DAY_LABELS_KO;
 
   // 표시할 요일 인덱스 목록 (0=월 … 6=일), startOfWeek 반영
   const baseDays = startOfWeek === "sun"

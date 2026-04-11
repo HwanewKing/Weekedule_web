@@ -4,7 +4,7 @@ import { setSessionCookie } from "@/server/auth/session";
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password } = await req.json();
+    const { name, email, password, language } = await req.json();
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: "모든 필드를 입력해주세요" }, { status: 400 });
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "이미 사용 중인 이메일이에요" }, { status: 409 });
     }
 
-    const user = await createUser(name, email, password);
+    const user = await createUser(name, email, password, language ?? "ko");
     await setSessionCookie({ userId: user.id, email: user.email, name: user.name });
 
     return NextResponse.json({ user }, { status: 201 });
