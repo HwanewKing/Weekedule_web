@@ -23,7 +23,8 @@ interface AuthStore {
   register: (
     name: string,
     email: string,
-    password: string
+    password: string,
+    language?: string
   ) => Promise<{ success: boolean; error?: string }>;
 
   /** 서버에서 현재 세션 사용자 불러오기 */
@@ -56,9 +57,7 @@ export const useAuthStore = create<AuthStore>()(
         set({ user: null });
       },
 
-      register: async (name, email, password) => {
-        const { useSettingsStore } = await import("./settingsStore");
-        const language = useSettingsStore.getState().language;
+      register: async (name, email, password, language = "ko") => {
         const res = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
