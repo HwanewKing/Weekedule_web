@@ -62,7 +62,7 @@ export default function RoomsPage() {
           <div className="shrink-0">
             <span className="inline-flex items-center gap-2 rounded-full bg-surface-container-high px-4 py-2 text-sm font-semibold text-on-surface">
               <span className="w-2 h-2 rounded-full bg-primary" />
-              {rooms.length}개 Room
+              {rooms.length} Room{language === "en" && rooms.length !== 1 ? "s" : (language === "ko" ? "개" : "")}
             </span>
           </div>
         </section>

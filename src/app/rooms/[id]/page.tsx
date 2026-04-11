@@ -15,6 +15,70 @@ import {
 import RoomIconEl from "@/components/rooms/RoomIcon";
 import ScheduleOverlap from "@/components/rooms/ScheduleOverlap";
 import InviteModal from "@/components/rooms/InviteModal";
+import { useSettingsStore } from "@/lib/settingsStore";
+
+const T = {
+  ko: {
+    notFound: "Room을 찾을 수 없어요",
+    backToList: "← 목록으로",
+    memberCount: (n: number) => `${n}명`,
+    tabOverlap: "Schedule Overlap",
+    tabMembers: "Team 관리",
+    overlapDesc: "멤버들의 시간표가 겹치는 구간을 히트맵으로 확인하고 최적 미팅 시간을 찾아보세요. 셀을 클릭해 일정을 확정할 수 있어요.",
+    noMembers: "멤버가 없어요",
+    noMembersDesc: "Team 관리 탭에서 먼저 멤버를 초대해주세요",
+    goInvite: "멤버 초대하러 가기",
+    teamTitle: "Team 관리",
+    teamDesc: "멤버 초대 및 색상, 히트맵 색상을 설정하세요",
+    eventsRegistered: (n: number) => `${n}개 일정 등록됨`,
+    noMembersYet: "아직 멤버가 없어요",
+    inviteBtn: "멤버 초대하기",
+    heatmapTitle: "히트맵 색상",
+    heatmapDesc: "Schedule Overlap 히트맵의 기준 색상을 선택하세요",
+    roomSettings: "Room 설정",
+    deleteRoom: "🗑 Room 삭제",
+    deleteTitle: "정말 삭제하시겠습니까?",
+    deleteDesc: (name: string) => `${name}을 삭제하면\n멤버들의 일정 공유도 종료됩니다. 이 작업은 되돌릴 수 없어요.`,
+    deleteNo: "아니요",
+    deleteYes: "예, 삭제",
+    toastDay: ["월", "화", "수", "목", "금", "토", "일"],
+    toastConfirmed: (n: number, slot?: string) => n === 1 && slot ? `${slot} 확정` : `${n}개 슬롯 확정`,
+    toastCancelled: (n: number) => `${n}개 슬롯 취소`,
+    toastSuffix: "되었어요!",
+    meetingTitle: (name: string) => `${name} 미팅`,
+    meetingDesc: (name: string) => `룸 미팅: ${name}`,
+  },
+  en: {
+    notFound: "Room not found",
+    backToList: "← Back",
+    memberCount: (n: number) => `${n} member${n !== 1 ? "s" : ""}`,
+    tabOverlap: "Schedule Overlap",
+    tabMembers: "Team",
+    overlapDesc: "View overlapping schedules as a heatmap and find the best meeting time. Click a cell to confirm a slot.",
+    noMembers: "No members yet",
+    noMembersDesc: "Invite members from the Team tab first",
+    goInvite: "Invite Members",
+    teamTitle: "Team",
+    teamDesc: "Invite members and configure colors",
+    eventsRegistered: (n: number) => `${n} event${n !== 1 ? "s" : ""} registered`,
+    noMembersYet: "No members yet",
+    inviteBtn: "Invite Members",
+    heatmapTitle: "Heatmap Color",
+    heatmapDesc: "Choose the base color for the Schedule Overlap heatmap",
+    roomSettings: "Room Settings",
+    deleteRoom: "🗑 Delete Room",
+    deleteTitle: "Delete this room?",
+    deleteDesc: (name: string) => `Deleting "${name}" will end schedule sharing for all members. This cannot be undone.`,
+    deleteNo: "Cancel",
+    deleteYes: "Delete",
+    toastDay: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    toastConfirmed: (n: number, slot?: string) => n === 1 && slot ? `${slot} confirmed` : `${n} slots confirmed`,
+    toastCancelled: (n: number) => `${n} slot${n !== 1 ? "s" : ""} cancelled`,
+    toastSuffix: "",
+    meetingTitle: (name: string) => `${name} Meeting`,
+    meetingDesc: (name: string) => `Room meeting: ${name}`,
+  },
+} as const;
 
 type Tab = "overlap" | "members";
 
@@ -24,6 +88,8 @@ export default function RoomDetailPage() {
   const { rooms, updateRoom, deleteRoom, removeMember, updateMemberColor, confirmedSlots, fetchConfirmedSlots, setConfirmedSlots } = useRoomStore();
   const { user } = useAuthStore();
   const { events, deleteEvent } = useWeekedualeStore();
+  const { language } = useSettingsStore();
+  const t = T[language];
 
   const room = rooms.find((r) => r.id === id);
 
@@ -43,9 +109,9 @@ export default function RoomDetailPage() {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-on-surface-variant mb-4">Room을 찾을 수 없어요</p>
+          <p className="text-on-surface-variant mb-4">{t.notFound}</p>
           <button onClick={() => router.push("/rooms")} className="text-primary text-sm font-semibold hover:underline">
-            ← 목록으로
+            {t.backToList}
           </button>
         </div>
       </div>
@@ -90,8 +156,8 @@ export default function RoomDetailPage() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              title: `${room.name} 미팅`,
-              description: `룸 미팅: ${room.name}`,
+              title: t.meetingTitle(room.name),
+              description: t.meetingDesc(room.name),
               dayOfWeek: s.dayOfWeek,
               startTime: s.startTime,
               endTime: s.endTime,
@@ -120,19 +186,15 @@ export default function RoomDetailPage() {
     }
 
     // 4) 토스트 표시
-    const days = ["월", "화", "수", "목", "금", "토", "일"];
     const parts: string[] = [];
     if (newSlots.length > 0) {
-      parts.push(
-        newSlots.length === 1
-          ? `${days[newSlots[0].dayOfWeek]}요일 ${newSlots[0].startTime} 확정`
-          : `${newSlots.length}개 슬롯 확정`
-      );
+      const slot = newSlots.length === 1 ? `${t.toastDay[newSlots[0].dayOfWeek]} ${newSlots[0].startTime}` : undefined;
+      parts.push(t.toastConfirmed(newSlots.length, slot));
     }
     if (cancelSlotIds.length > 0) {
-      parts.push(`${cancelSlotIds.length}개 슬롯 취소`);
+      parts.push(t.toastCancelled(cancelSlotIds.length));
     }
-    setConfirmed({ label: parts.join(" · ") + "되었어요!" });
+    setConfirmed({ label: parts.join(" · ") + t.toastSuffix });
     setTimeout(() => setConfirmed(null), 4000);
   };
 
@@ -163,18 +225,18 @@ export default function RoomDetailPage() {
 
         <div className="flex items-center gap-1.5 px-3 py-1 bg-surface-container-low rounded-full">
           <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
-          <span className="text-xs font-medium text-on-surface-variant">{room.members.length}명</span>
+          <span className="text-xs font-medium text-on-surface-variant">{t.memberCount(room.members.length)}</span>
         </div>
       </header>
 
       {/* 탭 */}
       <div className="px-8 pt-4 flex gap-1 shrink-0">
-        {([ ["overlap", "Schedule Overlap"], ["members", "Team 관리"] ] as [Tab, string][]).map(([t, label]) => (
+        {([ ["overlap", t.tabOverlap], ["members", t.tabMembers] ] as [Tab, string][]).map(([tab2, label]) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={tab2}
+            onClick={() => setTab(tab2)}
             className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-              tab === t
+              tab === tab2
                 ? "bg-primary text-on-primary"
                 : "text-on-surface-variant hover:bg-surface-container"
             }`}
@@ -196,7 +258,7 @@ export default function RoomDetailPage() {
                 Schedule Overlap
               </h3>
               <p className="text-sm text-on-surface-variant mt-1 max-w-lg">
-                멤버들의 시간표가 겹치는 구간을 히트맵으로 확인하고 최적 미팅 시간을 찾아보세요. 셀을 클릭해 일정을 확정할 수 있어요.
+                {t.overlapDesc}
               </p>
             </div>
 
@@ -208,10 +270,10 @@ export default function RoomDetailPage() {
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                   </svg>
                 </div>
-                <p className="text-base font-bold text-on-surface mb-1">멤버가 없어요</p>
-                <p className="text-sm text-on-surface-variant mb-4">Team 관리 탭에서 먼저 멤버를 초대해주세요</p>
+                <p className="text-base font-bold text-on-surface mb-1">{t.noMembers}</p>
+                <p className="text-sm text-on-surface-variant mb-4">{t.noMembersDesc}</p>
                 <button onClick={() => setTab("members")} className="px-4 py-2 rounded-full btn-gradient text-sm font-bold text-on-primary">
-                  멤버 초대하러 가기
+                  {t.goInvite}
                 </button>
               </div>
             ) : (
@@ -229,15 +291,15 @@ export default function RoomDetailPage() {
           <div className="max-w-xl flex flex-col gap-5">
             <div>
               <h3 className="text-2xl font-extrabold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
-                Team 관리
+                {t.teamTitle}
               </h3>
-              <p className="text-sm text-on-surface-variant mt-1">멤버 초대 및 색상, 히트맵 색상을 설정하세요</p>
+              <p className="text-sm text-on-surface-variant mt-1">{t.teamDesc}</p>
             </div>
 
             {/* 멤버 목록 */}
             <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/10 overflow-hidden">
               {room.members.length === 0 && (
-                <p className="text-sm text-on-surface-variant p-5">아직 멤버가 없어요</p>
+                <p className="text-sm text-on-surface-variant p-5">{t.noMembersYet}</p>
               )}
               {room.members.map((m, i) => {
                 const isExpanded = expandedMemberId === m.id;
@@ -257,7 +319,7 @@ export default function RoomDetailPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-on-surface">{m.name}</p>
-                        <p className="text-[10px] text-on-surface-variant">{m.events.length}개 일정 등록됨</p>
+                        <p className="text-[10px] text-on-surface-variant">{t.eventsRegistered(m.events.length)}</p>
                       </div>
 
                       {/* 색상 변경 버튼 */}
@@ -323,13 +385,13 @@ export default function RoomDetailPage() {
                 <line x1="19" y1="8" x2="19" y2="14" />
                 <line x1="22" y1="11" x2="16" y2="11" />
               </svg>
-              멤버 초대하기
+              {t.inviteBtn}
             </button>
 
             {/* 히트맵 색상 */}
             <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/10 p-5">
-              <h4 className="text-sm font-bold text-on-surface mb-1">히트맵 색상</h4>
-              <p className="text-[11px] text-on-surface-variant mb-3">Schedule Overlap 히트맵의 기준 색상을 선택하세요</p>
+              <h4 className="text-sm font-bold text-on-surface mb-1">{t.heatmapTitle}</h4>
+              <p className="text-[11px] text-on-surface-variant mb-3">{t.heatmapDesc}</p>
               <div className="flex gap-2 flex-wrap">
                 {HEATMAP_COLOR_OPTIONS.map((opt) => {
                   const isActive = room.heatmapColor === opt.id;
@@ -358,12 +420,12 @@ export default function RoomDetailPage() {
 
             {/* Room 설정 */}
             <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/10 p-5 flex flex-col gap-3">
-              <h4 className="text-sm font-bold text-on-surface">Room 설정</h4>
+              <h4 className="text-sm font-bold text-on-surface">{t.roomSettings}</h4>
               <button
                 onClick={() => setShowDeleteModal(true)}
                 className="py-2.5 px-4 rounded-xl text-sm font-semibold transition-all text-left border border-error/30 text-error hover:bg-error/5"
               >
-                🗑 Room 삭제
+                {t.deleteRoom}
               </button>
             </div>
           </div>
@@ -387,24 +449,23 @@ export default function RoomDetailPage() {
               className="text-lg font-bold text-on-surface mb-2 text-center"
               style={{ fontFamily: "var(--font-manrope)" }}
             >
-              정말 삭제하시겠습니까?
+              {t.deleteTitle}
             </h3>
-            <p className="text-sm text-on-surface-variant mb-6 text-center leading-relaxed">
-              <span className="font-semibold text-on-surface">{room.name}</span>을 삭제하면<br />
-              멤버들의 일정 공유도 종료됩니다. 이 작업은 되돌릴 수 없어요.
+            <p className="text-sm text-on-surface-variant mb-6 text-center leading-relaxed whitespace-pre-line">
+              {t.deleteDesc(room.name)}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
                 className="flex-1 py-2.5 rounded-full border border-outline-variant text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
               >
-                아니요
+                {t.deleteNo}
               </button>
               <button
                 onClick={handleDeleteConfirmed}
                 className="flex-1 py-2.5 rounded-full bg-error text-on-error text-sm font-bold transition-all active:scale-95"
               >
-                예, 삭제
+                {t.deleteYes}
               </button>
             </div>
           </div>

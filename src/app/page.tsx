@@ -2,14 +2,22 @@
 
 import { useState } from "react";
 import { useWeekedualeStore } from "@/lib/store";
+import { useSettingsStore } from "@/lib/settingsStore";
 import WeekGrid from "@/components/timetable/WeekGrid";
 import BottomWidgets from "@/components/timetable/BottomWidgets";
 import EventModal from "@/components/timetable/EventModal";
 import { CalendarEvent } from "@/types/event";
 
+const T = {
+  ko: { nav: "Weekly Timetable", addEvent: "Add Event", title: "이번 주 시간표", subtitle: "일정을 클릭하면 수정하거나 삭제할 수 있어요" },
+  en: { nav: "Weekly Timetable", addEvent: "Add Event", title: "This Week", subtitle: "Click an event to edit or delete it" },
+} as const;
+
 export default function TimetablePage() {
   const { events, weeklyGoal, addEvent, updateEvent, deleteEvent, deleteGroup, setWeeklyGoal } =
     useWeekedualeStore();
+  const { language } = useSettingsStore();
+  const t = T[language];
 
   const [modalOpen,    setModalOpen]    = useState(false);
   const [editTarget,   setEditTarget]   = useState<CalendarEvent | null>(null);
@@ -62,7 +70,7 @@ export default function TimetablePage() {
           className="text-base font-bold text-on-surface"
           style={{ fontFamily: "var(--font-manrope)" }}
         >
-          Weekly Timetable
+          {t.nav}
         </h2>
         <div className="flex items-center gap-3">
           <button
@@ -72,7 +80,7 @@ export default function TimetablePage() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Add Event
+            {t.addEvent}
           </button>
         </div>
       </header>
@@ -83,10 +91,10 @@ export default function TimetablePage() {
           className="text-4xl font-extrabold text-on-surface tracking-tight"
           style={{ fontFamily: "var(--font-manrope)" }}
         >
-          이번 주 시간표
+          {t.title}
         </h3>
         <p className="text-sm text-on-surface-variant mt-1">
-          일정을 클릭하면 수정하거나 삭제할 수 있어요
+          {t.subtitle}
         </p>
       </div>
 

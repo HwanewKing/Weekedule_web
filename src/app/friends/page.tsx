@@ -3,7 +3,63 @@
 import { useState } from "react";
 import { useFriendStore } from "@/lib/friendStore";
 import { useAuthStore } from "@/lib/authStore";
+import { useSettingsStore } from "@/lib/settingsStore";
 import { getMemberStyle } from "@/types/room";
+
+const T = {
+  ko: {
+    title: "친구",
+    addFriend: "친구 추가",
+    friendCount: (n: number) => `${n}명의 친구`,
+    addPanel: "친구 추가",
+    emailLabel: "이메일로 찾기",
+    emailPlaceholder: "친구의 이메일 주소",
+    sendRequest: "요청 보내기",
+    sending: "...",
+    successMsg: "친구 요청을 보냈어요!",
+    or: "또는",
+    inviteLabel: "링크로 초대",
+    copy: "복사",
+    copied: "복사됨 ✓",
+    pendingIn: "받은 요청",
+    pendingOut: "보낸 요청 — 대기 중",
+    waiting: "대기 중",
+    friendList: (n: number) => `친구 목록 — ${n}명`,
+    accept: "수락",
+    decline: "거절",
+    remove: "삭제",
+    removeConfirm: "정말 삭제?",
+    noFriends: "친구가 없어요",
+    noFriendsDesc: "이메일로 친구를 찾거나 링크를 공유해보세요",
+    addFriendBtn: "친구 추가하기",
+  },
+  en: {
+    title: "Friends",
+    addFriend: "Add Friend",
+    friendCount: (n: number) => `${n} friend${n !== 1 ? "s" : ""}`,
+    addPanel: "Add Friend",
+    emailLabel: "Find by email",
+    emailPlaceholder: "Friend's email address",
+    sendRequest: "Send Request",
+    sending: "...",
+    successMsg: "Friend request sent!",
+    or: "or",
+    inviteLabel: "Invite by link",
+    copy: "Copy",
+    copied: "Copied ✓",
+    pendingIn: "Incoming Requests",
+    pendingOut: "Sent Requests — Pending",
+    waiting: "Pending",
+    friendList: (n: number) => `Friends — ${n}`,
+    accept: "Accept",
+    decline: "Decline",
+    remove: "Remove",
+    removeConfirm: "Sure?",
+    noFriends: "No friends yet",
+    noFriendsDesc: "Find friends by email or share an invite link",
+    addFriendBtn: "Add a Friend",
+  },
+} as const;
 
 function generateFriendInviteLink(userId: string) {
   const token = btoa(`friend:${userId}:${Date.now()}`).replace(/=/g, "").slice(0, 16);
@@ -12,6 +68,9 @@ function generateFriendInviteLink(userId: string) {
 
 export default function FriendsPage() {
   const { user } = useAuthStore();
+  const { language } = useSettingsStore();
+  const t = T[language];
+
   const { friends, pendingIn, pendingOut, sendRequest, acceptRequest, declineRequest, removeFriend } = useFriendStore();
 
   const [showAddPanel,    setShowAddPanel]    = useState(false);
@@ -28,7 +87,7 @@ export default function FriendsPage() {
     setSending(true);
     setSendResult(null);
     const result = await sendRequest(emailInput.trim());
-    setSendResult({ ok: result.success, msg: result.success ? "친구 요청을 보냈어요!" : result.error ?? "오류가 발생했어요" });
+    setSendResult({ ok: result.success, msg: result.success ? t.successMsg : result.error ?? "Error" });
     if (result.success) setEmailInput("");
     setSending(false);
   };
@@ -52,10 +111,9 @@ export default function FriendsPage() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      {/* Top Bar */}
       <div className="glass-nav border-b border-outline-variant/10 px-8 py-3 flex items-center justify-between shrink-0">
         <h2 className="text-sm font-bold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
-          친구
+          {t.title}
         </h2>
         <button
           onClick={() => { setShowAddPanel(true); setSendResult(null); }}
@@ -67,23 +125,23 @@ export default function FriendsPage() {
             <line x1="19" y1="8" x2="19" y2="14" />
             <line x1="22" y1="11" x2="16" y2="11" />
           </svg>
-          친구 추가
+          {t.addFriend}
         </button>
       </div>
 
       <main className="px-8 py-6 max-w-2xl flex flex-col gap-6">
         <div>
           <h1 className="text-3xl font-extrabold text-on-surface tracking-tight" style={{ fontFamily: "var(--font-manrope)" }}>
-            친구
+            {t.title}
           </h1>
-          <p className="text-sm text-on-surface-variant mt-1">{friends.length}명의 친구</p>
+          <p className="text-sm text-on-surface-variant mt-1">{t.friendCount(friends.length)}</p>
         </div>
 
         {/* 친구 추가 패널 */}
         {showAddPanel && (
           <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/10 p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-on-surface">친구 추가</h3>
+              <h3 className="text-sm font-bold text-on-surface">{t.addPanel}</h3>
               <button
                 onClick={() => { setShowAddPanel(false); setSendResult(null); setEmailInput(""); }}
                 className="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors"
@@ -95,14 +153,14 @@ export default function FriendsPage() {
             </div>
 
             <div>
-              <label className="label-field">이메일로 찾기</label>
+              <label className="label-field">{t.emailLabel}</label>
               <div className="flex gap-2">
                 <input
                   type="email"
                   value={emailInput}
                   onChange={(e) => { setEmailInput(e.target.value); setSendResult(null); }}
                   onKeyDown={(e) => e.key === "Enter" && handleSendRequest()}
-                  placeholder="친구의 이메일 주소"
+                  placeholder={t.emailPlaceholder}
                   className="field flex-1"
                   autoFocus
                 />
@@ -111,7 +169,7 @@ export default function FriendsPage() {
                   disabled={!emailInput.trim() || sending}
                   className="px-4 py-2 rounded-xl btn-gradient text-xs font-bold text-on-primary disabled:opacity-40 disabled:cursor-not-allowed shrink-0 transition-all"
                 >
-                  {sending ? "..." : "요청 보내기"}
+                  {sending ? t.sending : t.sendRequest}
                 </button>
               </div>
               {sendResult && (
@@ -127,12 +185,12 @@ export default function FriendsPage() {
 
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-outline-variant/20" />
-              <span className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-wide">또는</span>
+              <span className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-wide">{t.or}</span>
               <div className="flex-1 h-px bg-outline-variant/20" />
             </div>
 
             <div>
-              <label className="label-field">링크로 초대</label>
+              <label className="label-field">{t.inviteLabel}</label>
               <div className="flex items-center gap-2">
                 <code className="flex-1 text-xs text-on-surface bg-surface-container rounded-xl px-3 py-2.5 font-mono truncate">
                   {inviteLink}
@@ -143,7 +201,7 @@ export default function FriendsPage() {
                     copied ? "bg-[#dcfce7] text-[#16a34a]" : "btn-gradient text-on-primary"
                   }`}
                 >
-                  {copied ? "복사됨 ✓" : "복사"}
+                  {copied ? t.copied : t.copy}
                 </button>
               </div>
             </div>
@@ -154,7 +212,7 @@ export default function FriendsPage() {
         {pendingIn.length > 0 && (
           <div>
             <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wide mb-2 flex items-center gap-2">
-              받은 요청
+              {t.pendingIn}
               <span className="px-1.5 py-0.5 rounded-full bg-primary text-on-primary text-[10px] font-bold leading-none">
                 {pendingIn.length}
               </span>
@@ -173,17 +231,11 @@ export default function FriendsPage() {
                     <p className="text-[11px] text-on-surface-variant">{rel.from.email}</p>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
-                    <button
-                      onClick={() => acceptRequest(rel.id)}
-                      className="px-3 py-1.5 rounded-full btn-gradient text-xs font-bold text-on-primary"
-                    >
-                      수락
+                    <button onClick={() => acceptRequest(rel.id)} className="px-3 py-1.5 rounded-full btn-gradient text-xs font-bold text-on-primary">
+                      {t.accept}
                     </button>
-                    <button
-                      onClick={() => declineRequest(rel.id)}
-                      className="px-3 py-1.5 rounded-full border border-outline-variant/30 text-xs font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
-                    >
-                      거절
+                    <button onClick={() => declineRequest(rel.id)} className="px-3 py-1.5 rounded-full border border-outline-variant/30 text-xs font-semibold text-on-surface-variant hover:bg-surface-container transition-colors">
+                      {t.decline}
                     </button>
                   </div>
                 </div>
@@ -192,11 +244,11 @@ export default function FriendsPage() {
           </div>
         )}
 
-        {/* 보낸 요청 (대기 중) */}
+        {/* 보낸 요청 */}
         {pendingOut.length > 0 && (
           <div>
             <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wide mb-2">
-              보낸 요청 — 대기 중
+              {t.pendingOut}
             </h3>
             <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/10 overflow-hidden">
               {pendingOut.map((rel, i) => (
@@ -212,7 +264,7 @@ export default function FriendsPage() {
                     <p className="text-[11px] text-on-surface-variant">{rel.to.email}</p>
                   </div>
                   <span className="text-[10px] text-on-surface-variant bg-surface-container px-2.5 py-1 rounded-full shrink-0">
-                    대기 중
+                    {t.waiting}
                   </span>
                 </div>
               ))}
@@ -223,7 +275,7 @@ export default function FriendsPage() {
         {/* 친구 목록 */}
         <div>
           <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wide mb-2">
-            친구 목록 — {friends.length}명
+            {t.friendList(friends.length)}
           </h3>
           {friends.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -233,13 +285,13 @@ export default function FriendsPage() {
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
               </div>
-              <p className="text-base font-bold text-on-surface mb-1">친구가 없어요</p>
-              <p className="text-sm text-on-surface-variant mb-4">이메일로 친구를 찾거나 링크를 공유해보세요</p>
+              <p className="text-base font-bold text-on-surface mb-1">{t.noFriends}</p>
+              <p className="text-sm text-on-surface-variant mb-4">{t.noFriendsDesc}</p>
               <button
                 onClick={() => setShowAddPanel(true)}
                 className="px-4 py-2 rounded-full btn-gradient text-sm font-bold text-on-primary"
               >
-                친구 추가하기
+                {t.addFriendBtn}
               </button>
             </div>
           ) : (
@@ -254,10 +306,7 @@ export default function FriendsPage() {
                       i > 0 ? "border-t border-outline-variant/10" : ""
                     }`}
                   >
-                    <div
-                      style={memberStyle}
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                    >
+                    <div style={memberStyle} className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
                       {friend.initials}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -273,7 +322,7 @@ export default function FriendsPage() {
                           : "text-on-surface-variant hover:text-error hover:bg-error/5 border border-outline-variant/20"
                       }`}
                     >
-                      {isConfirm ? "정말 삭제?" : "삭제"}
+                      {isConfirm ? t.removeConfirm : t.remove}
                     </button>
                   </div>
                 );

@@ -1,9 +1,57 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { RoomMember, ConfirmedSlot, getMemberStyle, getHeatStyle, HEATMAP_COLOR_OPTIONS } from "@/types/room";
-import { DAY_LABELS, timeToMinutes } from "@/types/event";
+import { RoomMember, ConfirmedSlot, getMemberStyle, getHeatStyle } from "@/types/room";
+import { timeToMinutes } from "@/types/event";
+import { useSettingsStore } from "@/lib/settingsStore";
 import type { CalendarEvent } from "@/types/event";
+
+const T = {
+  ko: {
+    selectedMembers: "Selected Members",
+    heatmapLegend: "Heatmap Legend",
+    free: "Free",
+    busy: "Busy",
+    confirmedSlot: "확정된 슬롯",
+    available: "가능",
+    busyLabel: "바쁨",
+    noMembers: "멤버 정보 없음",
+    daySuffix: "요일",
+    addCount: (n: number) => `${n}개 추가`,
+    cancelCount: (n: number) => `${n}개 취소`,
+    addAndCancel: (a: number, c: number) => `${a}개 추가 · ${c}개 취소`,
+    slotSelected: (n: number) => `${n}개 슬롯 선택됨`,
+    cancelPending: (n: number) => `${n}개 슬롯 취소 예정`,
+    allAvailable: "전원 가능:",
+    noCommon: "공통으로 가능한 멤버 없음",
+    cancellingConfirmed: "확정 슬롯을 취소합니다",
+    cancel: "취소",
+    confirm: "Confirm",
+    days: ["월", "화", "수", "목", "금", "토", "일"],
+  },
+  en: {
+    selectedMembers: "Selected Members",
+    heatmapLegend: "Heatmap Legend",
+    free: "Free",
+    busy: "Busy",
+    confirmedSlot: "Confirmed",
+    available: "Available",
+    busyLabel: "Busy",
+    noMembers: "No member info",
+    daySuffix: "",
+    addCount: (n: number) => `${n} added`,
+    cancelCount: (n: number) => `${n} cancelled`,
+    addAndCancel: (a: number, c: number) => `${a} add · ${c} cancel`,
+    slotSelected: (n: number) => `${n} slot${n !== 1 ? "s" : ""} selected`,
+    cancelPending: (n: number) => `${n} slot${n !== 1 ? "s" : ""} to cancel`,
+    allAvailable: "All available:",
+    noCommon: "No common available members",
+    cancellingConfirmed: "Cancelling confirmed slots",
+    cancel: "Cancel",
+    confirm: "Confirm",
+    days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+  },
+} as const;
 
 // ── 상수 ──────────────────────────────────────────────────────
 const HOUR_START = 8;
@@ -56,16 +104,18 @@ export default function ScheduleOverlap({
   confirmedSlots = [],
   onConfirm,
 }: ScheduleOverlapProps) {
+  const { language } = useSettingsStore();
+  const t = T[language];
+
   const [activeIds, setActiveIds] = useState<Set<string>>(
     () => new Set(members.map((m) => m.id))
   );
-  const [selectedKeys,  setSelectedKeys]  = useState<Set<string>>(() => new Set());
+  const [selectedKeys,   setSelectedKeys]   = useState<Set<string>>(() => new Set());
   const [cancellingKeys, setCancellingKeys] = useState<Set<string>>(() => new Set());
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null);
 
   const activeCount = activeIds.size;
 
-  // 확정된 슬롯 키 세트 & key→id 맵
   const { confirmedKeySet, confirmedIdByKey } = useMemo(() => {
     const keySet = new Set<string>();
     const idMap  = new Map<string, string>();
@@ -78,7 +128,6 @@ export default function ScheduleOverlap({
     return { confirmedKeySet: keySet, confirmedIdByKey: idMap };
   }, [confirmedSlots]);
 
-  // 선택된 슬롯 정보 목록
   const selectedSlots = useMemo(() => {
     return [...selectedKeys].map((key) => {
       const [day, hour] = key.split("-").map(Number);
@@ -88,7 +137,6 @@ export default function ScheduleOverlap({
     });
   }, [selectedKeys, members, activeIds]);
 
-  // 모든 선택 슬롯에서 공통으로 가능한 멤버 (교집합)
   const commonFreeMembers = useMemo(() => {
     if (selectedSlots.length === 0) return [];
     const freeIdSets = selectedSlots.map((s) => new Set(s.free.map((m) => m.id)));
@@ -107,7 +155,6 @@ export default function ScheduleOverlap({
 
   const handleSlotClick = useCallback((key: string, isConfirmed: boolean) => {
     if (isConfirmed) {
-      // 확정 슬롯: 취소 대기 ↔ 복원 토글
       setCancellingKeys((prev) => {
         const next = new Set(prev);
         if (next.has(key)) next.delete(key);
@@ -115,7 +162,6 @@ export default function ScheduleOverlap({
         return next;
       });
     } else {
-      // 일반 슬롯: 선택 토글
       setSelectedKeys((prev) => {
         const next = new Set(prev);
         if (next.has(key)) next.delete(key);
@@ -130,22 +176,12 @@ export default function ScheduleOverlap({
       const rect = e.currentTarget.getBoundingClientRect();
       const busy = getBusyMembers(members, activeIds, day, hour);
       const free = members.filter((m) => activeIds.has(m.id) && !busy.includes(m));
-      setTooltip({
-        key: slotKey(day, hour),
-        day,
-        hour,
-        x: rect.left + rect.width / 2,
-        y: rect.top - 8,
-        busy,
-        free,
-      });
+      setTooltip({ key: slotKey(day, hour), day, hour, x: rect.left + rect.width / 2, y: rect.top - 8, busy, free });
     },
     [members, activeIds]
   );
 
-  const handleMouseLeave = useCallback(() => {
-    setTooltip(null);
-  }, []);
+  const handleMouseLeave = useCallback(() => setTooltip(null), []);
 
   const handleConfirm = () => {
     if (selectedKeys.size === 0 && cancellingKeys.size === 0) return;
@@ -168,7 +204,7 @@ export default function ScheduleOverlap({
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="md:col-span-3 bg-surface-container-low rounded-3xl p-5">
           <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">
-            Selected Members
+            {t.selectedMembers}
           </p>
           <div className="flex flex-wrap gap-2">
             {members.map((m) => {
@@ -193,10 +229,10 @@ export default function ScheduleOverlap({
         {/* 범례 */}
         <div className="bg-surface-container-low rounded-3xl p-5 flex flex-col justify-center">
           <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">
-            Heatmap Legend
+            {t.heatmapLegend}
           </p>
           <div className="flex items-center gap-1.5 mb-2">
-            <span className="text-[9px] text-on-surface-variant w-7">Free</span>
+            <span className="text-[9px] text-on-surface-variant w-7">{t.free}</span>
             {[0, 0.1, 0.3, 0.6, 0.9].map((ratio, i) => (
               <div
                 key={i}
@@ -204,13 +240,13 @@ export default function ScheduleOverlap({
                 style={ratio > 0 ? getHeatStyle(ratio, heatmapColor) : {}}
               />
             ))}
-            <span className="text-[9px] text-on-surface-variant w-7 text-right">Busy</span>
+            <span className="text-[9px] text-on-surface-variant w-7 text-right">{t.busy}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="relative w-8 h-4 rounded-md ring-[3px] ring-green-500 bg-surface-container shrink-0 flex items-center justify-center">
               <span className="text-green-400 font-bold text-[10px] leading-none">✓</span>
             </div>
-            <span className="text-[9px] text-on-surface-variant">확정된 슬롯</span>
+            <span className="text-[9px] text-on-surface-variant">{t.confirmedSlot}</span>
           </div>
         </div>
       </div>
@@ -221,7 +257,7 @@ export default function ScheduleOverlap({
           {/* 요일 헤더 */}
           <div className="grid grid-cols-[56px_repeat(7,1fr)] mb-3">
             <div />
-            {DAY_LABELS.map((label, i) => (
+            {t.days.map((label, i) => (
               <div key={i} className="text-center">
                 <span
                   className="text-sm font-extrabold"
@@ -246,10 +282,10 @@ export default function ScheduleOverlap({
                   </span>
                 </div>
 
-                {DAY_LABELS.map((_, dayIdx) => {
-                  const key        = slotKey(dayIdx, hour);
-                  const busyList   = getBusyMembers(members, activeIds, dayIdx, hour);
-                  const ratio      = activeCount > 0 ? busyList.length / activeCount : 0;
+                {t.days.map((_, dayIdx) => {
+                  const key          = slotKey(dayIdx, hour);
+                  const busyList     = getBusyMembers(members, activeIds, dayIdx, hour);
+                  const ratio        = activeCount > 0 ? busyList.length / activeCount : 0;
                   const isSelected   = selectedKeys.has(key);
                   const isConfirmed  = confirmedKeySet.has(key);
                   const isCancelling = cancellingKeys.has(key);
@@ -272,22 +308,15 @@ export default function ScheduleOverlap({
                           ? "ring-[3px] ring-green-500 hover:z-10"
                           : "hover:scale-[1.06] hover:z-10",
                         ratio === 0
-                          ? isWeekend
-                            ? "bg-surface-dim/20"
-                            : "bg-surface-container"
+                          ? isWeekend ? "bg-surface-dim/20" : "bg-surface-container"
                           : "",
                       ].join(" ")}
                     >
-                      {/* 확정 체크 / 취소 X — 중앙 배치 */}
                       {isCancelling && (
-                        <span className="absolute inset-0 flex items-center justify-center text-red-400 font-bold text-sm">
-                          ✕
-                        </span>
+                        <span className="absolute inset-0 flex items-center justify-center text-red-400 font-bold text-sm">✕</span>
                       )}
                       {isConfirmed && !isCancelling && (
-                        <span className="absolute inset-0 flex items-center justify-center text-green-400 font-bold text-sm">
-                          ✓
-                        </span>
+                        <span className="absolute inset-0 flex items-center justify-center text-green-400 font-bold text-sm">✓</span>
                       )}
                     </button>
                   );
@@ -306,37 +335,32 @@ export default function ScheduleOverlap({
         >
           <div className="bg-on-surface text-inverse-on-surface rounded-2xl px-3 py-2.5 shadow-ambient min-w-[140px]">
             <p className="text-[11px] font-bold mb-1.5">
-              {DAY_LABELS[tooltip.day]}요일&nbsp;
+              {t.days[tooltip.day]}{t.daySuffix}&nbsp;
               {String(tooltip.hour).padStart(2, "0")}:00 – {String(tooltip.hour + 1).padStart(2, "0")}:00
             </p>
             {tooltip.free.length > 0 && (
               <div className="mb-1">
-                <p className="text-[9px] font-semibold text-green-400 uppercase tracking-wide mb-0.5">가능</p>
+                <p className="text-[9px] font-semibold text-green-400 uppercase tracking-wide mb-0.5">{t.available}</p>
                 <div className="flex flex-wrap gap-1">
                   {tooltip.free.map((m) => (
-                    <span key={m.id} className="text-[10px] font-semibold text-inverse-on-surface/90">
-                      {m.name}
-                    </span>
+                    <span key={m.id} className="text-[10px] font-semibold text-inverse-on-surface/90">{m.name}</span>
                   ))}
                 </div>
               </div>
             )}
             {tooltip.busy.length > 0 && (
               <div>
-                <p className="text-[9px] font-semibold text-red-400 uppercase tracking-wide mb-0.5">바쁨</p>
+                <p className="text-[9px] font-semibold text-red-400 uppercase tracking-wide mb-0.5">{t.busyLabel}</p>
                 <div className="flex flex-wrap gap-1">
                   {tooltip.busy.map((m) => (
-                    <span key={m.id} className="text-[10px] font-semibold text-inverse-on-surface/50 line-through">
-                      {m.name}
-                    </span>
+                    <span key={m.id} className="text-[10px] font-semibold text-inverse-on-surface/50 line-through">{m.name}</span>
                   ))}
                 </div>
               </div>
             )}
             {tooltip.free.length === 0 && tooltip.busy.length === 0 && (
-              <p className="text-[10px] text-inverse-on-surface/70">멤버 정보 없음</p>
+              <p className="text-[10px] text-inverse-on-surface/70">{t.noMembers}</p>
             )}
-            {/* 아래 화살표 */}
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0"
               style={{ borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "5px solid var(--color-on-surface)" }}
             />
@@ -348,7 +372,6 @@ export default function ScheduleOverlap({
       {(selectedKeys.size > 0 || cancellingKeys.size > 0) && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-10rem)] max-w-3xl z-50">
           <div className="glass-nav rounded-3xl px-5 py-4 flex items-center justify-between gap-4 border border-white/30 shadow-ambient">
-            {/* 슬롯 수 정보 */}
             <div className="flex items-center gap-3 shrink-0">
               <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -361,29 +384,28 @@ export default function ScheduleOverlap({
               <div>
                 <p className="text-sm font-bold text-on-surface leading-tight">
                   {selectedKeys.size > 0 && cancellingKeys.size > 0
-                    ? `${selectedKeys.size}개 추가 · ${cancellingKeys.size}개 취소`
+                    ? t.addAndCancel(selectedKeys.size, cancellingKeys.size)
                     : selectedKeys.size > 0
-                    ? `${selectedKeys.size}개 슬롯 선택됨`
-                    : `${cancellingKeys.size}개 슬롯 취소 예정`}
+                    ? t.slotSelected(selectedKeys.size)
+                    : t.cancelPending(cancellingKeys.size)}
                 </p>
                 <p className="text-[10px] text-on-surface-variant mt-0.5">
                   {[
-                    ...selectedSlots.map((s) => `+${DAY_LABELS[s.day]}${String(s.hour).padStart(2,"0")}:00`),
+                    ...selectedSlots.map((s) => `+${t.days[s.day]} ${String(s.hour).padStart(2,"0")}:00`),
                     ...[...cancellingKeys].map((k) => {
                       const [d, h] = k.split("-").map(Number);
-                      return `−${DAY_LABELS[d]}${String(h).padStart(2,"0")}:00`;
+                      return `−${t.days[d]} ${String(h).padStart(2,"0")}:00`;
                     }),
                   ].join("  ")}
                 </p>
               </div>
             </div>
 
-            {/* 공통 가능 멤버 칩 (새 슬롯 선택 시만) */}
             <div className="flex items-center gap-1.5 flex-1 overflow-x-auto px-2 min-w-0">
               {selectedKeys.size > 0 ? (
                 commonFreeMembers.length > 0 ? (
                   <>
-                    <span className="text-[10px] text-on-surface-variant shrink-0">전원 가능:</span>
+                    <span className="text-[10px] text-on-surface-variant shrink-0">{t.allAvailable}</span>
                     {commonFreeMembers.map((m) => (
                       <div
                         key={m.id}
@@ -395,26 +417,25 @@ export default function ScheduleOverlap({
                     ))}
                   </>
                 ) : (
-                  <span className="text-[10px] text-on-surface-variant">공통으로 가능한 멤버 없음</span>
+                  <span className="text-[10px] text-on-surface-variant">{t.noCommon}</span>
                 )
               ) : (
-                <span className="text-[10px] text-red-400 font-semibold">확정 슬롯을 취소합니다</span>
+                <span className="text-[10px] text-red-400 font-semibold">{t.cancellingConfirmed}</span>
               )}
             </div>
 
-            {/* 버튼 */}
             <div className="flex gap-2 shrink-0">
               <button
                 onClick={() => { setSelectedKeys(new Set()); setCancellingKeys(new Set()); }}
                 className="px-4 py-2 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
               >
-                취소
+                {t.cancel}
               </button>
               <button
                 onClick={handleConfirm}
                 className="px-5 py-2 rounded-xl btn-gradient text-sm font-bold text-on-primary active:scale-95 transition-all"
               >
-                Confirm
+                {t.confirm}
               </button>
             </div>
           </div>

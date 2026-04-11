@@ -2,37 +2,80 @@
 
 import { useState } from "react";
 import { useNotificationStore, Notification, NotificationType } from "@/lib/notificationStore";
+import { useSettingsStore } from "@/lib/settingsStore";
 
-// ── 상대 시간 포맷 ───────────────────────────────────────────────
-function relativeTime(iso: string): string {
+interface NotiT {
+  title: string; markAllRead: string; unreadCount: (n: number) => string;
+  noNew: string; filterAll: string; filterUnread: string;
+  today: string; yesterday: string; older: string;
+  empty: string; emptyDesc: string; accept: string; decline: string;
+  justNow: string; minutesAgo: (m: number) => string;
+  hoursAgo: (h: number) => string; daysAgo: (d: number) => string;
+}
+
+const T: Record<string, NotiT> = {
+  ko: {
+    title: "알림",
+    markAllRead: "모두 읽음 처리",
+    unreadCount: (n: number) => `읽지 않은 알림 ${n}개`,
+    noNew: "새 알림이 없어요",
+    filterAll: "전체",
+    filterUnread: "읽지 않음",
+    today: "오늘",
+    yesterday: "어제",
+    older: "이전",
+    empty: "알림이 없어요",
+    emptyDesc: "새로운 소식이 생기면 여기에 표시돼요",
+    accept: "수락",
+    decline: "거절",
+    justNow: "방금 전",
+    minutesAgo: (m: number) => `${m}분 전`,
+    hoursAgo: (h: number) => `${h}시간 전`,
+    daysAgo: (d: number) => d === 1 ? "어제" : `${d}일 전`,
+  },
+  en: {
+    title: "Notifications",
+    markAllRead: "Mark all as read",
+    unreadCount: (n: number) => `${n} unread`,
+    noNew: "No new notifications",
+    filterAll: "All",
+    filterUnread: "Unread",
+    today: "Today",
+    yesterday: "Yesterday",
+    older: "Earlier",
+    empty: "No notifications",
+    emptyDesc: "New updates will appear here",
+    accept: "Accept",
+    decline: "Decline",
+    justNow: "Just now",
+    minutesAgo: (m: number) => `${m}m ago`,
+    hoursAgo: (h: number) => `${h}h ago`,
+    daysAgo: (d: number) => d === 1 ? "Yesterday" : `${d}d ago`,
+  },
+};
+
+function relativeTime(iso: string, t: NotiT): string {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1)  return "방금 전";
-  if (m < 60) return `${m}분 전`;
+  if (m < 1)  return t.justNow;
+  if (m < 60) return t.minutesAgo(m);
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}시간 전`;
+  if (h < 24) return t.hoursAgo(h);
   const d = Math.floor(h / 24);
-  if (d === 1) return "어제";
-  return `${d}일 전`;
+  return t.daysAgo(d);
 }
 
-// 날짜 그룹 레이블
-function dateGroup(iso: string): string {
+function dateGroupKey(iso: string): "today" | "yesterday" | "older" {
   const diff = Date.now() - new Date(iso).getTime();
   const h = diff / 3600000;
-  if (h < 24)  return "오늘";
-  if (h < 48)  return "어제";
-  return "이전";
+  if (h < 24) return "today";
+  if (h < 48) return "yesterday";
+  return "older";
 }
 
-// ── 알림 타입별 아이콘 & 색상 ────────────────────────────────────
-const TYPE_CONFIG: Record<
-  NotificationType,
-  { icon: React.ReactNode; bg: string; color: string }
-> = {
+const TYPE_CONFIG: Record<NotificationType, { icon: React.ReactNode; bg: string; color: string }> = {
   friend_request: {
-    bg: "#ede9fe",
-    color: "#6d28d9",
+    bg: "#ede9fe", color: "#6d28d9",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -42,8 +85,7 @@ const TYPE_CONFIG: Record<
     ),
   },
   room_invite: {
-    bg: "#dbeafe",
-    color: "#1d4ed8",
+    bg: "#dbeafe", color: "#1d4ed8",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -52,8 +94,7 @@ const TYPE_CONFIG: Record<
     ),
   },
   meeting_confirmed: {
-    bg: "#dcfce7",
-    color: "#16a34a",
+    bg: "#dcfce7", color: "#16a34a",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -64,8 +105,7 @@ const TYPE_CONFIG: Record<
     ),
   },
   member_joined: {
-    bg: "#ccfbf1",
-    color: "#0f766e",
+    bg: "#ccfbf1", color: "#0f766e",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -75,8 +115,7 @@ const TYPE_CONFIG: Record<
     ),
   },
   schedule_conflict: {
-    bg: "#ffedd5",
-    color: "#c2410c",
+    bg: "#ffedd5", color: "#c2410c",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
@@ -87,9 +126,9 @@ const TYPE_CONFIG: Record<
   },
 };
 
-// ── 개별 알림 카드 ────────────────────────────────────────────────
-function NotificationItem({ n, onRead, onDismiss, onAccept, onDecline }: {
+function NotificationItem({ n, t, onRead, onDismiss, onAccept, onDecline }: {
   n: Notification;
+  t: NotiT;
   onRead: () => void;
   onDismiss: () => void;
   onAccept: () => void;
@@ -104,20 +143,15 @@ function NotificationItem({ n, onRead, onDismiss, onAccept, onDecline }: {
         !n.read ? "bg-primary-fixed/30" : ""
       }`}
     >
-      {/* 읽지 않음 도트 */}
       {!n.read && (
         <span className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
       )}
-
-      {/* 아이콘 */}
       <div
         className="w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 mt-0.5"
         style={{ backgroundColor: cfg.bg, color: cfg.color }}
       >
         {cfg.icon}
       </div>
-
-      {/* 내용 */}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <p className={`text-sm leading-snug ${n.read ? "text-on-surface" : "font-semibold text-on-surface"}`}>
@@ -125,7 +159,7 @@ function NotificationItem({ n, onRead, onDismiss, onAccept, onDecline }: {
           </p>
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="text-[10px] text-on-surface-variant whitespace-nowrap">
-              {relativeTime(n.time)}
+              {relativeTime(n.time, t)}
             </span>
             <button
               onClick={(e) => { e.stopPropagation(); onDismiss(); }}
@@ -137,21 +171,13 @@ function NotificationItem({ n, onRead, onDismiss, onAccept, onDecline }: {
             </button>
           </div>
         </div>
-
-        {/* 액션 버튼 */}
         {n.actionable && (
           <div className="flex gap-2 mt-2.5" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={onAccept}
-              className="px-3 py-1.5 rounded-full btn-gradient text-xs font-bold text-on-primary"
-            >
-              수락
+            <button onClick={onAccept} className="px-3 py-1.5 rounded-full btn-gradient text-xs font-bold text-on-primary">
+              {t.accept}
             </button>
-            <button
-              onClick={onDecline}
-              className="px-3 py-1.5 rounded-full border border-outline-variant/30 text-xs font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
-            >
-              거절
+            <button onClick={onDecline} className="px-3 py-1.5 rounded-full border border-outline-variant/30 text-xs font-semibold text-on-surface-variant hover:bg-surface-container transition-colors">
+              {t.decline}
             </button>
           </div>
         )}
@@ -160,74 +186,55 @@ function NotificationItem({ n, onRead, onDismiss, onAccept, onDecline }: {
   );
 }
 
-// ── 메인 페이지 ──────────────────────────────────────────────────
 type Filter = "all" | "unread";
 
 export default function NotificationsPage() {
-  const { notifications, markRead, markAllRead, dismiss } =
-    useNotificationStore();
+  const { notifications, markRead, markAllRead, dismiss } = useNotificationStore();
+  const { language } = useSettingsStore();
+  const t = T[language];
+
   const [filter, setFilter] = useState<Filter>("all");
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const filtered = filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
 
-  const filtered = filter === "unread"
-    ? notifications.filter((n) => !n.read)
-    : notifications;
-
-  // 날짜 그룹으로 묶기
-  const groups: { label: string; items: Notification[] }[] = [];
-  const ORDER = ["오늘", "어제", "이전"];
-  for (const label of ORDER) {
-    const items = filtered.filter((n) => dateGroup(n.time) === label);
-    if (items.length > 0) groups.push({ label, items });
-  }
+  const GROUP_KEYS: Array<"today" | "yesterday" | "older"> = ["today", "yesterday", "older"];
+  const groups = GROUP_KEYS
+    .map((key) => ({ label: t[key], items: filtered.filter((n) => dateGroupKey(n.time) === key) }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <div className="flex-1 overflow-y-auto">
-      {/* Top Bar */}
       <div className="glass-nav border-b border-outline-variant/10 px-8 py-3 flex items-center justify-between shrink-0">
-        <h2
-          className="text-sm font-bold text-on-surface"
-          style={{ fontFamily: "var(--font-manrope)" }}
-        >
-          알림
+        <h2 className="text-sm font-bold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
+          {t.title}
         </h2>
         {unreadCount > 0 && (
-          <button
-            onClick={markAllRead}
-            className="text-xs font-semibold text-primary hover:underline"
-          >
-            모두 읽음 처리
+          <button onClick={markAllRead} className="text-xs font-semibold text-primary hover:underline">
+            {t.markAllRead}
           </button>
         )}
       </div>
 
       <main className="px-8 py-6 max-w-2xl flex flex-col gap-6">
-        {/* Header */}
         <div className="flex items-end justify-between">
           <div>
-            <h1
-              className="text-3xl font-extrabold text-on-surface tracking-tight"
-              style={{ fontFamily: "var(--font-manrope)" }}
-            >
-              알림
+            <h1 className="text-3xl font-extrabold text-on-surface tracking-tight" style={{ fontFamily: "var(--font-manrope)" }}>
+              {t.title}
             </h1>
             <p className="text-sm text-on-surface-variant mt-1">
-              {unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개` : "새 알림이 없어요"}
+              {unreadCount > 0 ? t.unreadCount(unreadCount) : t.noNew}
             </p>
           </div>
         </div>
 
-        {/* Filter tabs */}
         <div className="flex gap-1">
-          {([["all", "전체"], ["unread", "읽지 않음"]] as [Filter, string][]).map(([f, label]) => (
+          {([["all", t.filterAll], ["unread", t.filterUnread]] as [Filter, string][]).map(([f, label]) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                filter === f
-                  ? "bg-primary text-on-primary"
-                  : "text-on-surface-variant hover:bg-surface-container"
+                filter === f ? "bg-primary text-on-primary" : "text-on-surface-variant hover:bg-surface-container"
               }`}
             >
               {label}
@@ -242,7 +249,6 @@ export default function NotificationsPage() {
           ))}
         </div>
 
-        {/* 알림 목록 */}
         {groups.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-4">
@@ -251,8 +257,8 @@ export default function NotificationsPage() {
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
             </div>
-            <p className="text-base font-bold text-on-surface mb-1">알림이 없어요</p>
-            <p className="text-sm text-on-surface-variant">새로운 소식이 생기면 여기에 표시돼요</p>
+            <p className="text-base font-bold text-on-surface mb-1">{t.empty}</p>
+            <p className="text-sm text-on-surface-variant">{t.emptyDesc}</p>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
@@ -266,6 +272,7 @@ export default function NotificationsPage() {
                     <div key={n.id} className={i > 0 ? "border-t border-outline-variant/10" : ""}>
                       <NotificationItem
                         n={n}
+                        t={t}
                         onRead={() => markRead(n.id)}
                         onDismiss={() => dismiss(n.id)}
                         onAccept={() => markRead(n.id)}
