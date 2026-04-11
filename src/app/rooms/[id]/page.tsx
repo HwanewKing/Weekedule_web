@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useRoomStore } from "@/lib/roomStore";
 import { useAuthStore } from "@/lib/authStore";
+import { useWeekedualeStore } from "@/lib/store";
 import {
   MEMBER_COLOR_OPTIONS,
   HEATMAP_COLOR_OPTIONS,
@@ -22,6 +23,7 @@ export default function RoomDetailPage() {
   const router  = useRouter();
   const { rooms, updateRoom, deleteRoom, removeMember, updateMemberColor, confirmedSlots, fetchConfirmedSlots, setConfirmedSlots } = useRoomStore();
   const { user } = useAuthStore();
+  const { events, deleteEvent } = useWeekedualeStore();
 
   const room = rooms.find((r) => r.id === id);
 
@@ -100,7 +102,24 @@ export default function RoomDetailPage() {
       );
     }
 
-    // 3) 토스트 표시
+    // 3) 취소된 슬롯 → 개인 시간표에서 일치하는 CalendarEvent 삭제
+    if (cancelSlotIds.length > 0) {
+      const cancelledSlots = (confirmedSlots[room.id] ?? []).filter((s) =>
+        cancelSlotIds.includes(s.id)
+      );
+      for (const slot of cancelledSlots) {
+        // dayOfWeek + startTime + endTime이 같은 개인 이벤트 찾아 삭제
+        const matched = events.filter(
+          (e) =>
+            e.dayOfWeek === slot.dayOfWeek &&
+            e.startTime === slot.startTime &&
+            e.endTime   === slot.endTime
+        );
+        await Promise.all(matched.map((e) => deleteEvent(e.id)));
+      }
+    }
+
+    // 4) 토스트 표시
     const days = ["월", "화", "수", "목", "금", "토", "일"];
     const parts: string[] = [];
     if (newSlots.length > 0) {
