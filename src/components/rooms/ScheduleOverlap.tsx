@@ -185,8 +185,8 @@ export default function ScheduleOverlap({
             <span className="text-[9px] text-on-surface-variant w-7 text-right">Busy</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="relative w-8 h-4 rounded-md ring-[3px] ring-green-500 bg-surface-container shrink-0 flex items-center justify-end pr-0.5">
-              <span className="w-3 h-3 bg-green-500 rounded-full" />
+            <div className="relative w-8 h-4 rounded-md ring-[3px] ring-green-500 bg-surface-container shrink-0 flex items-center justify-center">
+              <span className="text-green-400 font-bold text-[10px] leading-none">✓</span>
             </div>
             <span className="text-[9px] text-on-surface-variant">확정된 슬롯</span>
           </div>
@@ -253,9 +253,11 @@ export default function ScheduleOverlap({
                           : "",
                       ].join(" ")}
                     >
-                      {/* 확정 도트 — 중앙 우측 배치 */}
+                      {/* 확정 체크 — 중앙 배치 */}
                       {isConfirmed && (
-                        <span className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-green-500 rounded-full shadow-sm" />
+                        <span className="absolute inset-0 flex items-center justify-center text-green-400 font-bold text-sm">
+                          ✓
+                        </span>
                       )}
                     </button>
                   );
