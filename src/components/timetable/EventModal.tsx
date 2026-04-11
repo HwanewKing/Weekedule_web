@@ -14,11 +14,13 @@ import {
 
 interface EventModalProps {
   open: boolean;
-  editEvent?: CalendarEvent | null;
+  editEvent?: CalendarEvent | null;   // 단일 이벤트 편집
+  editEvents?: CalendarEvent[] | null; // 그룹 이벤트 편집
   defaultDay?: number;
   onClose: () => void;
-  onSave: (events: Omit<CalendarEvent, "id">[]) => void;
+  onSave: (events: Omit<CalendarEvent, "id">[], groupId?: string) => void;
   onDelete?: (id: string) => void;
+  onDeleteGroup?: (groupId: string) => void;
 }
 
 interface TimeSlot {
@@ -96,8 +98,9 @@ function CategoryPanel({ editId, initialLabel = "", initialColor = "#4F6CF5", on
 }
 
 // ─── 메인 EventModal ──────────────────────────────────────────────────────
-export default function EventModal({ open, editEvent, defaultDay = 0, onClose, onSave, onDelete }: EventModalProps) {
-  const isEdit = !!editEvent;
+export default function EventModal({ open, editEvent, editEvents, defaultDay = 0, onClose, onSave, onDelete, onDeleteGroup }: EventModalProps) {
+  const isEdit      = !!(editEvent || editEvents);
+  const isGroupEdit = !!(editEvents && editEvents.length > 0);
   const { categories, deleteCategory } = useCategoryStore();
 
   const [title,       setTitle]       = useState("");
@@ -118,7 +121,21 @@ export default function EventModal({ open, editEvent, defaultDay = 0, onClose, o
     if (!open) return;
     setConfirmDel(false);
     setCatPanel(null);
-    if (editEvent) {
+
+    if (editEvents && editEvents.length > 0) {
+      // 그룹 편집 모드: 첫 번째 이벤트에서 공통 정보 가져오기
+      const first = editEvents[0];
+      setTitle(first.title);
+      setDescription(first.description ?? "");
+      setCategory(first.category);
+      setSlots(editEvents.map((e) => ({
+        _key: e.id,
+        dayOfWeek: e.dayOfWeek,
+        startTime: e.startTime,
+        endTime:   e.endTime,
+        location:  e.location ?? "",
+      })));
+    } else if (editEvent) {
       setTitle(editEvent.title);
       setDescription(editEvent.description ?? "");
       setCategory(editEvent.category);
@@ -132,12 +149,11 @@ export default function EventModal({ open, editEvent, defaultDay = 0, onClose, o
     } else {
       setTitle("");
       setDescription("");
-      // 모달이 열릴 때 첫 번째 실제 카테고리로 초기화
       setCategory(categories[0]?.id ?? "");
       setSlots([newSlot(defaultDay)]);
     }
     setTimeout(() => titleRef.current?.focus(), 60);
-  }, [open, editEvent, defaultDay]);
+  }, [open, editEvent, editEvents, defaultDay]);
 
   useEffect(() => {
     if (categories.length > 0 && !categories.find((c) => c.id === category)) {
@@ -157,7 +173,7 @@ export default function EventModal({ open, editEvent, defaultDay = 0, onClose, o
 
   const handleSave = () => {
     if (!valid) return;
-    const events = slots.map((s) => ({
+    const mapped = slots.map((s) => ({
       title: title.trim(),
       description: description.trim() || undefined,
       category,
@@ -166,14 +182,22 @@ export default function EventModal({ open, editEvent, defaultDay = 0, onClose, o
       endTime:   s.endTime,
       location:  s.location.trim() || undefined,
     }));
-    onSave(events);
+    if (isGroupEdit) {
+      // 그룹 편집: 기존 groupId 유지
+      onSave(mapped, editEvents![0].groupId);
+    } else {
+      onSave(mapped);
+    }
     onClose();
   };
 
   const handleDelete = () => {
-    if (!editEvent) return;
     if (!confirmDel) { setConfirmDel(true); return; }
-    onDelete?.(editEvent.id);
+    if (isGroupEdit && editEvents?.[0]?.groupId) {
+      onDeleteGroup?.(editEvents[0].groupId!);
+    } else if (editEvent) {
+      onDelete?.(editEvent.id);
+    }
     onClose();
   };
 
@@ -186,10 +210,10 @@ export default function EventModal({ open, editEvent, defaultDay = 0, onClose, o
         <div className="px-6 pt-6 pb-4 border-b border-outline-variant/10 flex items-start justify-between">
           <div>
             <h2 className="text-xl font-extrabold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
-              {isEdit ? "일정 편집" : "새 일정 추가"}
+              {isGroupEdit ? `그룹 일정 편집 (${editEvents!.length}개)` : isEdit ? "일정 편집" : "새 일정 추가"}
             </h2>
             <p className="text-xs text-on-surface-variant mt-0.5">
-              {isEdit ? "내용을 수정하거나 삭제하세요" : "요일·시간을 추가해 반복 일정을 한번에 등록하세요"}
+              {isGroupEdit ? "함께 등록된 일정을 한번에 수정하세요" : isEdit ? "내용을 수정하거나 삭제하세요" : "요일·시간을 추가해 반복 일정을 한번에 등록하세요"}
             </p>
           </div>
           <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface transition-colors mt-0.5">
@@ -390,7 +414,7 @@ export default function EventModal({ open, editEvent, defaultDay = 0, onClose, o
                 confirmDel ? "bg-error text-on-error" : "border border-error/40 text-error hover:bg-error/5"
               }`}
             >
-              {confirmDel ? "정말 삭제" : "삭제"}
+              {confirmDel ? "정말 삭제" : isGroupEdit ? "전체 삭제" : "삭제"}
             </button>
           )}
           <button
@@ -404,7 +428,7 @@ export default function EventModal({ open, editEvent, defaultDay = 0, onClose, o
             disabled={!valid}
             className="flex-1 py-2.5 rounded-full btn-gradient text-sm font-bold text-on-primary disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
-            {isEdit ? "저장" : slots.length > 1 ? `${slots.length}개 추가` : "추가"}
+            {isGroupEdit ? `${slots.length}개 슬롯 저장` : isEdit ? "저장" : slots.length > 1 ? `${slots.length}개 추가` : "추가"}
           </button>
         </div>
       </div>

@@ -8,6 +8,7 @@ interface EventInput {
   endTime: string;
   location?: string;
   categoryId?: string;
+  groupId?: string;
 }
 
 export async function listEvents(userId: string) {

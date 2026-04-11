@@ -12,7 +12,18 @@ interface WeekedualeStore {
   addEvent: (event: Omit<CalendarEvent, "id">) => Promise<void>;
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
+  deleteGroup: (groupId: string) => Promise<void>;
   setWeeklyGoal: (text: string) => void;
+}
+
+// DB 응답 → CalendarEvent 정규화 (categoryId→category, groupId 포함)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeEvent(e: any): CalendarEvent {
+  return {
+    ...e,
+    category: e.categoryId ?? e.category ?? "",
+    groupId:  e.groupId ?? undefined,
+  };
 }
 
 export const useWeekedualeStore = create<WeekedualeStore>()(
@@ -27,10 +38,7 @@ export const useWeekedualeStore = create<WeekedualeStore>()(
         const data = await res.json();
         // DB는 categoryId 필드로 반환 → 프론트 CalendarEvent의 category로 변환
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const events = (data.events ?? []).map((e: any) => ({
-          ...e,
-          category: e.categoryId ?? e.category ?? "",
-        }));
+        const events = (data.events ?? []).map((e: any) => normalizeEvent(e));
         set({ events });
       },
 
@@ -47,8 +55,7 @@ export const useWeekedualeStore = create<WeekedualeStore>()(
           });
           if (res.ok) {
             const data = await res.json();
-            // 반환된 이벤트도 category 필드로 정규화
-            const normalized = { ...data.event, category: data.event.categoryId ?? data.event.category ?? "" };
+            const normalized = normalizeEvent(data.event);
             set((s) => ({
               events: s.events.map((e) => (e.id === tempId ? normalized : e)),
             }));
@@ -86,6 +93,19 @@ export const useWeekedualeStore = create<WeekedualeStore>()(
         try {
           const res = await fetch(`/api/events/${id}`, { method: "DELETE" });
           if (!res.ok) set({ events: prev });
+        } catch {
+          set({ events: prev });
+        }
+      },
+
+      deleteGroup: async (groupId) => {
+        const targets = get().events.filter((e) => e.groupId === groupId);
+        const prev = get().events;
+        set((s) => ({ events: s.events.filter((e) => e.groupId !== groupId) }));
+        try {
+          await Promise.all(
+            targets.map((e) => fetch(`/api/events/${e.id}`, { method: "DELETE" }))
+          );
         } catch {
           set({ events: prev });
         }

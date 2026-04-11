@@ -37,6 +37,8 @@ model CalendarEvent {
   location    String?
   categoryId  String?
 
+  groupId     String?  // 다중 슬롯으로 함께 생성된 이벤트 묶음 ID
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 

@@ -8,23 +8,41 @@ import EventModal from "@/components/timetable/EventModal";
 import { CalendarEvent } from "@/types/event";
 
 export default function TimetablePage() {
-  const { events, weeklyGoal, addEvent, updateEvent, deleteEvent, setWeeklyGoal } =
+  const { events, weeklyGoal, addEvent, updateEvent, deleteEvent, deleteGroup, setWeeklyGoal } =
     useWeekedualeStore();
 
-  const [modalOpen, setModalOpen]     = useState(false);
-  const [editTarget, setEditTarget]   = useState<CalendarEvent | null>(null);
+  const [modalOpen,    setModalOpen]    = useState(false);
+  const [editTarget,   setEditTarget]   = useState<CalendarEvent | null>(null);
+  const [editTargets,  setEditTargets]  = useState<CalendarEvent[] | null>(null);
 
-  const openAdd  = () => { setEditTarget(null); setModalOpen(true); };
-  const openEdit = (event: CalendarEvent) => { setEditTarget(event); setModalOpen(true); };
-  const closeModal = () => { setModalOpen(false); setEditTarget(null); };
-
-  const handleSave = (events: Omit<CalendarEvent, "id">[]) => {
-    if (editTarget) {
-      // 편집 모드: 항상 단일
-      updateEvent(editTarget.id, events[0]);
+  const openAdd  = () => { setEditTarget(null); setEditTargets(null); setModalOpen(true); };
+  const openEdit = (event: CalendarEvent) => {
+    if (event.groupId) {
+      // 그룹 이벤트: 같은 groupId를 가진 모든 이벤트를 묶어서 편집
+      const group = events.filter((e) => e.groupId === event.groupId);
+      setEditTargets(group);
+      setEditTarget(null);
     } else {
-      // 생성 모드: 선택된 요일 수만큼 이벤트 생성
-      events.forEach((e) => addEvent(e));
+      setEditTarget(event);
+      setEditTargets(null);
+    }
+    setModalOpen(true);
+  };
+  const closeModal = () => { setModalOpen(false); setEditTarget(null); setEditTargets(null); };
+
+  const handleSave = (newEvents: Omit<CalendarEvent, "id">[], groupId?: string) => {
+    if (editTargets) {
+      // 그룹 편집: 기존 이벤트 전체 삭제 후 새 슬롯으로 재생성
+      editTargets.forEach((e) => deleteEvent(e.id));
+      // 슬롯이 2개 이상이면 groupId 유지, 1개면 그룹 해제
+      const gid = newEvents.length > 1 ? (groupId ?? crypto.randomUUID()) : undefined;
+      newEvents.forEach((e) => addEvent({ ...e, groupId: gid }));
+    } else if (editTarget) {
+      updateEvent(editTarget.id, newEvents[0]);
+    } else {
+      // 신규: 슬롯이 2개 이상이면 공통 groupId 생성
+      const gid = newEvents.length > 1 ? crypto.randomUUID() : undefined;
+      newEvents.forEach((e) => addEvent({ ...e, groupId: gid }));
     }
   };
 
@@ -78,9 +96,11 @@ export default function TimetablePage() {
       <EventModal
         open={modalOpen}
         editEvent={editTarget}
+        editEvents={editTargets}
         onClose={closeModal}
         onSave={handleSave}
         onDelete={deleteEvent}
+        onDeleteGroup={deleteGroup}
       />
     </>
   );
