@@ -8,8 +8,8 @@ import { useSettingsStore } from "@/lib/settingsStore";
 import { useAuthStore } from "@/lib/authStore";
 
 const NAV_LABELS = {
-  ko: { "/": "시간표", "/rooms": "Rooms", "/friends": "친구", "/notifications": "알림", "/settings": "설정" },
-  en: { "/": "Timetable", "/rooms": "Rooms", "/friends": "Friends", "/notifications": "Notifications", "/settings": "Settings" },
+  ko: { "/": "시간표", "/rooms": "Rooms", "/friends": "친구", "/notifications": "알림", "/settings": "설정", "/feedback": "피드백" },
+  en: { "/": "Timetable", "/rooms": "Rooms", "/friends": "Friends", "/notifications": "Notifications", "/settings": "Settings", "/feedback": "Feedback" },
 } as const;
 
 const NAV_ICONS: Record<string, React.ReactNode> = {
@@ -46,9 +46,14 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   ),
+  "/feedback": (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  ),
 };
 
-const NAV_HREFS = ["/", "/rooms", "/friends", "/notifications", "/settings"] as const;
+const NAV_HREFS = ["/", "/rooms", "/friends", "/notifications", "/settings", "/feedback"] as const;
 type NavHref = typeof NAV_HREFS[number];
 
 export default function Sidebar() {
