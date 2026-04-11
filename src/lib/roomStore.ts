@@ -1,11 +1,14 @@
 "use client";
 
 import { create } from "zustand";
-import { Room, RoomColor, RoomIcon } from "@/types/room";
+import { Room, RoomColor, RoomIcon, ConfirmedSlot } from "@/types/room";
 
 interface RoomStore {
   rooms: Room[];
+  confirmedSlots: Record<string, ConfirmedSlot[]>;
   fetchRooms: () => Promise<void>;
+  fetchConfirmedSlots: (roomId: string) => Promise<void>;
+  addConfirmedSlots: (roomId: string, slots: ConfirmedSlot[]) => void;
   addRoom: (data: { name: string; description: string; color: RoomColor; icon: RoomIcon }) => Promise<void>;
   updateRoom: (id: string, updates: Partial<Room>) => Promise<void>;
   deleteRoom: (id: string) => Promise<void>;
@@ -27,18 +30,50 @@ function mapRoom(r: any): Room {
     nextSync: r.nextSync,
     nextSyncDay: r.nextSyncDay,
     createdAt: typeof r.createdAt === "string" ? r.createdAt : new Date(r.createdAt).toISOString(),
-    members: (r.members ?? []).map((m: any) => ({
-      id: m.id,
-      name: m.user?.name ?? "",
-      initials: (m.user?.name ?? "").slice(0, 2),
-      colorId: m.colorId ?? "blue",
-      events: (m.events ?? []).map((e: any) => e.event),
-    })),
+    members: (r.members ?? []).map((m: any) => {
+      // RoomMemberEvent를 통해 공유된 이벤트
+      const sharedEvents = (m.events ?? []).map((e: any) => e.event);
+      // 개인 CalendarEvent (서버에서 직접 조회)
+      const personalEvents: any[] = m.personalEvents ?? [];
+      // id 기준 dedup 후 병합
+      const eventMap = new Map<string, any>();
+      for (const e of [...sharedEvents, ...personalEvents]) {
+        if (e && e.id) eventMap.set(e.id, e);
+      }
+      return {
+        id: m.id,
+        name: m.user?.name ?? "",
+        initials: (m.user?.name ?? "").slice(0, 2),
+        colorId: m.colorId ?? "blue",
+        events: Array.from(eventMap.values()),
+      };
+    }),
   };
 }
 
 export const useRoomStore = create<RoomStore>()((set, get) => ({
   rooms: [],
+  confirmedSlots: {},
+
+  fetchConfirmedSlots: async (roomId: string) => {
+    const res = await fetch(`/api/rooms/${roomId}/confirm`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const slots: ConfirmedSlot[] = (data.slots ?? []).map((s: any) => ({
+      ...s,
+      createdAt: typeof s.createdAt === "string" ? s.createdAt : new Date(s.createdAt).toISOString(),
+    }));
+    set((state) => ({ confirmedSlots: { ...state.confirmedSlots, [roomId]: slots } }));
+  },
+
+  addConfirmedSlots: (roomId: string, slots: ConfirmedSlot[]) => {
+    set((state) => ({
+      confirmedSlots: {
+        ...state.confirmedSlots,
+        [roomId]: [...(state.confirmedSlots[roomId] ?? []), ...slots],
+      },
+    }));
+  },
 
   fetchRooms: async () => {
     const res = await fetch("/api/rooms");

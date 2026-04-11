@@ -30,6 +30,15 @@ export interface SelectedSlot {
   endTime: string;
 }
 
+export interface ConfirmedSlot {
+  id: string;
+  roomId: string;
+  dayOfWeek: number;
+  startTime: string;  // "HH:MM"
+  endTime: string;
+  createdAt: string;
+}
+
 // ── 멤버 고유 색상 옵션 (8가지) ────────────────────────────────
 export const MEMBER_COLOR_OPTIONS: { id: string; bg: string; text: string; label: string }[] = [
   { id: "blue",   bg: "#dbeafe", text: "#1d4ed8", label: "Blue"   },

@@ -60,10 +60,23 @@ model Room {
   ownerId String
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
-  members RoomMember[]
+  members        RoomMember[]
+  confirmedSlots ConfirmedSlot[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── ConfirmedSlot ─────────────────────────────────────────────────────────
+// 룸에서 확정된 미팅 시간 슬롯
+model ConfirmedSlot {
+  id        String   @id @default(cuid())
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  dayOfWeek Int
+  startTime String   // "HH:MM"
+  endTime   String   // "HH:MM"
+  createdAt DateTime @default(now())
 }
 
 // ─── RoomMember ────────────────────────────────────────────────────────────

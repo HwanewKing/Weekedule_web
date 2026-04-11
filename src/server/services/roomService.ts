@@ -49,7 +49,7 @@ export async function createRoom(ownerId: string, data: RoomInput) {
 }
 
 export async function getRoom(id: string) {
-  return db.room.findUnique({
+  const room = await db.room.findUnique({
     where: { id },
     include: {
       members: {
@@ -60,6 +60,43 @@ export async function getRoom(id: string) {
       },
     },
   });
+  if (!room) return null;
+
+  // 멤버의 개인 CalendarEvent도 함께 가져옴 (Feature 2)
+  const memberUserIds = room.members.map((m) => m.userId);
+  const personalEvents = memberUserIds.length > 0
+    ? await db.calendarEvent.findMany({ where: { userId: { in: memberUserIds } } })
+    : [];
+
+  const eventsByUser = new Map<string, typeof personalEvents>();
+  for (const e of personalEvents) {
+    if (!eventsByUser.has(e.userId)) eventsByUser.set(e.userId, []);
+    eventsByUser.get(e.userId)!.push(e);
+  }
+
+  const membersWithPersonal = room.members.map((m) => ({
+    ...m,
+    personalEvents: eventsByUser.get(m.userId) ?? [],
+  }));
+
+  return { ...room, members: membersWithPersonal };
+}
+
+export async function getConfirmedSlots(roomId: string) {
+  return db.confirmedSlot.findMany({
+    where: { roomId },
+    orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+  });
+}
+
+export async function confirmSlots(
+  roomId: string,
+  slots: { dayOfWeek: number; startTime: string; endTime: string }[]
+) {
+  await db.confirmedSlot.createMany({
+    data: slots.map((s) => ({ roomId, ...s })),
+  });
+  return getConfirmedSlots(roomId);
 }
 
 export async function updateRoom(id: string, ownerId: string, data: Partial<RoomInput>) {

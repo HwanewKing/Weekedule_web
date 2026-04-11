@@ -18,11 +18,13 @@ export default function TimetablePage() {
   const openEdit = (event: CalendarEvent) => { setEditTarget(event); setModalOpen(true); };
   const closeModal = () => { setModalOpen(false); setEditTarget(null); };
 
-  const handleSave = (data: Omit<CalendarEvent, "id">) => {
+  const handleSave = (events: Omit<CalendarEvent, "id">[]) => {
     if (editTarget) {
-      updateEvent(editTarget.id, data);
+      // 편집 모드: 항상 단일
+      updateEvent(editTarget.id, events[0]);
     } else {
-      addEvent(data);
+      // 생성 모드: 선택된 요일 수만큼 이벤트 생성
+      events.forEach((e) => addEvent(e));
     }
   };
 

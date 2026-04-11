@@ -1,8 +1,9 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoomStore } from "@/lib/roomStore";
+import { useAuthStore } from "@/lib/authStore";
 import {
   MEMBER_COLOR_OPTIONS,
   HEATMAP_COLOR_OPTIONS,
@@ -19,7 +20,8 @@ type Tab = "overlap" | "members";
 export default function RoomDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router  = useRouter();
-  const { rooms, updateRoom, deleteRoom, removeMember, updateMemberColor } = useRoomStore();
+  const { rooms, updateRoom, deleteRoom, removeMember, updateMemberColor, confirmedSlots, fetchConfirmedSlots, addConfirmedSlots } = useRoomStore();
+  const { user } = useAuthStore();
 
   const room = rooms.find((r) => r.id === id);
 
@@ -28,6 +30,12 @@ export default function RoomDetailPage() {
   const [confirmed,        setConfirmed]        = useState<{ label: string } | null>(null);
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
   const [inviteOpen,       setInviteOpen]       = useState(false);
+
+  // 룸 진입 시 확정 슬롯 로드
+  useEffect(() => {
+    if (id) fetchConfirmedSlots(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   if (!room) {
     return (
@@ -49,9 +57,53 @@ export default function RoomDetailPage() {
     router.push("/rooms");
   };
 
-  const handleConfirmSchedule = (slot: { dayOfWeek: number; startTime: string; endTime: string; busyMembers: string[] }) => {
+  const handleConfirmSchedule = async (
+    slots: { dayOfWeek: number; startTime: string; endTime: string }[]
+  ) => {
+    if (!room || slots.length === 0) return;
+
+    // 1) DB에 확정 슬롯 저장
+    const res = await fetch(`/api/rooms/${room.id}/confirm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slots }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const newSlots = (data.slots ?? []).map((s: any) => ({
+        ...s,
+        createdAt: typeof s.createdAt === "string" ? s.createdAt : new Date(s.createdAt).toISOString(),
+      }));
+      addConfirmedSlots(room.id, newSlots);
+    }
+
+    // 2) 로그인 유저의 개인 시간표에 CalendarEvent 생성
+    if (user) {
+      await Promise.all(
+        slots.map((s) =>
+          fetch("/api/events", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: `${room.name} 미팅`,
+              description: `룸 미팅: ${room.name}`,
+              dayOfWeek: s.dayOfWeek,
+              startTime: s.startTime,
+              endTime: s.endTime,
+              category: "meeting",
+            }),
+          })
+        )
+      );
+    }
+
+    // 3) 토스트 표시
     const days = ["월", "화", "수", "목", "금", "토", "일"];
-    setConfirmed({ label: `${days[slot.dayOfWeek]}요일 ${slot.startTime}–${slot.endTime}` });
+    const label =
+      slots.length === 1
+        ? `${days[slots[0].dayOfWeek]}요일 ${slots[0].startTime}–${slots[0].endTime}`
+        : `${slots.length}개 슬롯`;
+    setConfirmed({ label: `${label} 확정되었어요!` });
     setTimeout(() => setConfirmed(null), 4000);
   };
 
@@ -137,6 +189,7 @@ export default function RoomDetailPage() {
               <ScheduleOverlap
                 members={room.members}
                 heatmapColor={room.heatmapColor}
+                confirmedSlots={confirmedSlots[room.id] ?? []}
                 onConfirm={handleConfirmSchedule}
               />
             )}
@@ -333,7 +386,7 @@ export default function RoomDetailPage() {
       {confirmed && (
         <div className="fixed bottom-6 right-6 z-[60] bg-on-surface text-inverse-on-surface px-5 py-3 rounded-2xl text-sm font-semibold shadow-ambient flex items-center gap-3">
           <span className="text-[#4ade80]">✓</span>
-          {confirmed.label} 확정되었어요!
+          {confirmed.label}
         </div>
       )}
 

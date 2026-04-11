@@ -17,7 +17,7 @@ interface EventModalProps {
   editEvent?: CalendarEvent | null;
   defaultDay?: number;
   onClose: () => void;
-  onSave: (event: Omit<CalendarEvent, "id">) => void;
+  onSave: (events: Omit<CalendarEvent, "id">[]) => void;
   onDelete?: (id: string) => void;
 }
 
@@ -121,14 +121,16 @@ export default function EventModal({
   const isEdit = !!editEvent;
   const { categories, deleteCategory } = useCategoryStore();
 
-  const [title,       setTitle]       = useState("");
-  const [description, setDescription] = useState("");
-  const [location,    setLocation]    = useState("");
-  const [category,    setCategory]    = useState("meeting");
-  const [dayOfWeek,   setDayOfWeek]   = useState(defaultDay);
-  const [startTime,   setStartTime]   = useState("09:00");
-  const [endTime,     setEndTime]     = useState("10:00");
-  const [confirmDel,  setConfirmDel]  = useState(false);
+  const [title,        setTitle]        = useState("");
+  const [description,  setDescription]  = useState("");
+  const [location,     setLocation]     = useState("");
+  const [category,     setCategory]     = useState("meeting");
+  // 편집 모드: 단일 요일, 생성 모드: 다중 요일 Set
+  const [dayOfWeek,    setDayOfWeek]    = useState(defaultDay);
+  const [selectedDays, setSelectedDays] = useState<Set<number>>(() => new Set([defaultDay]));
+  const [startTime,    setStartTime]    = useState("09:00");
+  const [endTime,      setEndTime]      = useState("10:00");
+  const [confirmDel,   setConfirmDel]   = useState(false);
 
   // 카테고리 관리 패널 상태
   const [catPanel, setCatPanel] = useState<
@@ -149,6 +151,7 @@ export default function EventModal({
       setLocation(editEvent.location ?? "");
       setCategory(editEvent.category);
       setDayOfWeek(editEvent.dayOfWeek);
+      setSelectedDays(new Set([editEvent.dayOfWeek]));
       setStartTime(editEvent.startTime);
       setEndTime(editEvent.endTime);
     } else {
@@ -157,6 +160,7 @@ export default function EventModal({
       setLocation("");
       setCategory("meeting");
       setDayOfWeek(defaultDay);
+      setSelectedDays(new Set([defaultDay]));
       setStartTime("09:00");
       setEndTime("10:00");
     }
@@ -176,15 +180,21 @@ export default function EventModal({
 
   const handleSave = () => {
     if (!valid) return;
-    onSave({
+    const base = {
       title: title.trim(),
       description: description.trim() || undefined,
       location: location.trim() || undefined,
       category,
-      dayOfWeek,
       startTime,
       endTime,
-    });
+    };
+    if (isEdit) {
+      // 편집 모드: 단일 요일
+      onSave([{ ...base, dayOfWeek }]);
+    } else {
+      // 생성 모드: 선택된 모든 요일
+      onSave([...selectedDays].sort().map((d) => ({ ...base, dayOfWeek: d })));
+    }
     onClose();
   };
 
@@ -329,23 +339,47 @@ export default function EventModal({
 
           {/* 요일 */}
           <div>
-            <label className="label-field">요일</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="label-field mb-0">요일</label>
+              {!isEdit && selectedDays.size > 1 && (
+                <span className="text-[10px] font-semibold text-primary">
+                  {selectedDays.size}개 요일 선택됨
+                </span>
+              )}
+            </div>
             <div className="flex gap-1.5">
-              {DAY_LABELS.map((d, i) => (
-                <button
-                  key={i}
-                  onClick={() => setDayOfWeek(i)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-                    dayOfWeek === i
-                      ? "bg-primary text-on-primary"
-                      : i >= 5
-                      ? "bg-surface-container text-on-surface-variant/50 hover:bg-surface-container-high"
-                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                  }`}
-                >
-                  {d}
-                </button>
-              ))}
+              {DAY_LABELS.map((d, i) => {
+                const active = isEdit ? dayOfWeek === i : selectedDays.has(i);
+                return (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      if (isEdit) {
+                        setDayOfWeek(i);
+                      } else {
+                        setSelectedDays((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(i)) {
+                            if (next.size > 1) next.delete(i);
+                          } else {
+                            next.add(i);
+                          }
+                          return next;
+                        });
+                      }
+                    }}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                      active
+                        ? "bg-primary text-on-primary"
+                        : i >= 5
+                        ? "bg-surface-container text-on-surface-variant/50 hover:bg-surface-container-high"
+                        : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                    }`}
+                  >
+                    {d}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

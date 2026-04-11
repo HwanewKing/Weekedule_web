@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { RoomMember, getMemberStyle, getHeatStyle, HEATMAP_COLOR_OPTIONS } from "@/types/room";
+import { useState, useMemo, useCallback } from "react";
+import { RoomMember, ConfirmedSlot, getMemberStyle, getHeatStyle, HEATMAP_COLOR_OPTIONS } from "@/types/room";
 import { DAY_LABELS, timeToMinutes } from "@/types/event";
 import type { CalendarEvent } from "@/types/event";
 
@@ -28,29 +28,66 @@ function getBusyMembers(members: RoomMember[], activeIds: Set<string>, day: numb
   );
 }
 
-// ── 컴포넌트 ──────────────────────────────────────────────────
+// ── Props ─────────────────────────────────────────────────────
 interface ScheduleOverlapProps {
   members: RoomMember[];
   heatmapColor?: string;
-  onConfirm?: (slot: { dayOfWeek: number; startTime: string; endTime: string; busyMembers: string[] }) => void;
+  confirmedSlots?: ConfirmedSlot[];
+  onConfirm?: (slots: { dayOfWeek: number; startTime: string; endTime: string }[]) => void;
 }
 
-export default function ScheduleOverlap({ members, heatmapColor = "blue", onConfirm }: ScheduleOverlapProps) {
+interface TooltipInfo {
+  key: string;
+  day: number;
+  hour: number;
+  x: number;
+  y: number;
+  busy: RoomMember[];
+  free: RoomMember[];
+}
+
+// ── 컴포넌트 ──────────────────────────────────────────────────
+export default function ScheduleOverlap({
+  members,
+  heatmapColor = "blue",
+  confirmedSlots = [],
+  onConfirm,
+}: ScheduleOverlapProps) {
   const [activeIds, setActiveIds] = useState<Set<string>>(
     () => new Set(members.map((m) => m.id))
   );
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
+  const [tooltip, setTooltip] = useState<TooltipInfo | null>(null);
 
   const activeCount = activeIds.size;
 
-  // 선택된 슬롯 정보
-  const selectedSlot = useMemo(() => {
-    if (!selectedKey) return null;
-    const [day, hour] = selectedKey.split("-").map(Number);
-    const busy = getBusyMembers(members, activeIds, day, hour);
-    const free = members.filter((m) => activeIds.has(m.id) && !busy.includes(m));
-    return { day, hour, busy, free };
-  }, [selectedKey, members, activeIds]);
+  // 확정된 슬롯 키 세트
+  const confirmedKeySet = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of confirmedSlots) {
+      const hour = parseInt(s.startTime.split(":")[0], 10);
+      set.add(slotKey(s.dayOfWeek, hour));
+    }
+    return set;
+  }, [confirmedSlots]);
+
+  // 선택된 슬롯 정보 목록
+  const selectedSlots = useMemo(() => {
+    return [...selectedKeys].map((key) => {
+      const [day, hour] = key.split("-").map(Number);
+      const busy = getBusyMembers(members, activeIds, day, hour);
+      const free = members.filter((m) => activeIds.has(m.id) && !busy.includes(m));
+      return { key, day, hour, busy, free };
+    });
+  }, [selectedKeys, members, activeIds]);
+
+  // 모든 선택 슬롯에서 공통으로 가능한 멤버 (교집합)
+  const commonFreeMembers = useMemo(() => {
+    if (selectedSlots.length === 0) return [];
+    const freeIdSets = selectedSlots.map((s) => new Set(s.free.map((m) => m.id)));
+    const intersection = [...freeIdSets[0]].filter((id) => freeIdSets.every((set) => set.has(id)));
+    return members.filter((m) => intersection.includes(m.id));
+  }, [selectedSlots, members]);
 
   const toggleMember = (id: string) => {
     setActiveIds((prev) => {
@@ -61,16 +98,46 @@ export default function ScheduleOverlap({ members, heatmapColor = "blue", onConf
     });
   };
 
+  const handleSlotClick = useCallback((key: string) => {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const handleMouseEnter = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>, day: number, hour: number) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const busy = getBusyMembers(members, activeIds, day, hour);
+      const free = members.filter((m) => activeIds.has(m.id) && !busy.includes(m));
+      setTooltip({
+        key: slotKey(day, hour),
+        day,
+        hour,
+        x: rect.left + rect.width / 2,
+        y: rect.top - 8,
+        busy,
+        free,
+      });
+    },
+    [members, activeIds]
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    setTooltip(null);
+  }, []);
+
   const handleConfirm = () => {
-    if (!selectedSlot) return;
-    const { day, hour, busy } = selectedSlot;
-    onConfirm?.({
+    if (selectedSlots.length === 0) return;
+    const slots = selectedSlots.map(({ day, hour }) => ({
       dayOfWeek: day,
       startTime: `${String(hour).padStart(2, "0")}:00`,
       endTime:   `${String(hour + 1).padStart(2, "0")}:00`,
-      busyMembers: busy.map((m) => m.name),
-    });
-    setSelectedKey(null);
+    }));
+    onConfirm?.(slots);
+    setSelectedKeys(new Set());
   };
 
   return (
@@ -117,9 +184,10 @@ export default function ScheduleOverlap({ members, heatmapColor = "blue", onConf
             ))}
             <span className="text-[9px] text-on-surface-variant w-7 text-right">Busy</span>
           </div>
-          <p className="text-[9px] text-on-surface-variant text-center">
-            색이 진할수록 많은 멤버가 바빠요
-          </p>
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-4 rounded-md ring-2 ring-green-500/70 bg-surface-container shrink-0" />
+            <span className="text-[9px] text-on-surface-variant">확정된 슬롯</span>
+          </div>
         </div>
       </div>
 
@@ -158,23 +226,23 @@ export default function ScheduleOverlap({ members, heatmapColor = "blue", onConf
                   const key        = slotKey(dayIdx, hour);
                   const busyList   = getBusyMembers(members, activeIds, dayIdx, hour);
                   const ratio      = activeCount > 0 ? busyList.length / activeCount : 0;
-                  const isSelected = selectedKey === key;
+                  const isSelected = selectedKeys.has(key);
+                  const isConfirmed = confirmedKeySet.has(key);
                   const isWeekend  = dayIdx >= 5;
 
                   return (
                     <button
                       key={key}
-                      onClick={() => setSelectedKey(isSelected ? null : key)}
-                      title={
-                        busyList.length > 0
-                          ? `바쁜 멤버: ${busyList.map((m) => m.name).join(", ")}`
-                          : "전원 가능"
-                      }
+                      onClick={() => handleSlotClick(key)}
+                      onMouseEnter={(e) => handleMouseEnter(e, dayIdx, hour)}
+                      onMouseLeave={handleMouseLeave}
                       style={ratio > 0 ? getHeatStyle(ratio, heatmapColor) : undefined}
                       className={[
-                        "relative h-10 rounded-xl transition-all duration-150 group",
+                        "relative h-10 rounded-xl transition-all duration-150",
                         isSelected
                           ? "ring-2 ring-primary ring-offset-2 ring-offset-surface-container-lowest scale-105 z-10"
+                          : isConfirmed
+                          ? "ring-2 ring-green-500/70"
                           : "hover:scale-[1.06] hover:z-10",
                         ratio === 0
                           ? isWeekend
@@ -183,11 +251,9 @@ export default function ScheduleOverlap({ members, heatmapColor = "blue", onConf
                           : "",
                       ].join(" ")}
                     >
-                      {/* busy 카운트 hover */}
-                      {busyList.length > 0 && (
-                        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                          {busyList.length}/{activeCount}
-                        </span>
+                      {/* 확정 도트 */}
+                      {isConfirmed && (
+                        <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-green-500 rounded-full" />
                       )}
                     </button>
                   );
@@ -198,11 +264,57 @@ export default function ScheduleOverlap({ members, heatmapColor = "blue", onConf
         </div>
       </div>
 
+      {/* ── Hover 툴팁 ── */}
+      {tooltip && (
+        <div
+          className="fixed z-[60] pointer-events-none"
+          style={{ left: tooltip.x, top: tooltip.y, transform: "translate(-50%, -100%)" }}
+        >
+          <div className="bg-on-surface text-inverse-on-surface rounded-2xl px-3 py-2.5 shadow-ambient min-w-[140px]">
+            <p className="text-[11px] font-bold mb-1.5">
+              {DAY_LABELS[tooltip.day]}요일&nbsp;
+              {String(tooltip.hour).padStart(2, "0")}:00 – {String(tooltip.hour + 1).padStart(2, "0")}:00
+            </p>
+            {tooltip.free.length > 0 && (
+              <div className="mb-1">
+                <p className="text-[9px] font-semibold text-green-400 uppercase tracking-wide mb-0.5">가능</p>
+                <div className="flex flex-wrap gap-1">
+                  {tooltip.free.map((m) => (
+                    <span key={m.id} className="text-[10px] font-semibold text-inverse-on-surface/90">
+                      {m.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {tooltip.busy.length > 0 && (
+              <div>
+                <p className="text-[9px] font-semibold text-red-400 uppercase tracking-wide mb-0.5">바쁨</p>
+                <div className="flex flex-wrap gap-1">
+                  {tooltip.busy.map((m) => (
+                    <span key={m.id} className="text-[10px] font-semibold text-inverse-on-surface/50 line-through">
+                      {m.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {tooltip.free.length === 0 && tooltip.busy.length === 0 && (
+              <p className="text-[10px] text-inverse-on-surface/70">멤버 정보 없음</p>
+            )}
+            {/* 아래 화살표 */}
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0"
+              style={{ borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "5px solid var(--color-on-surface)" }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* ── 하단 플로팅 바 ── */}
-      {selectedSlot && (
+      {selectedKeys.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-10rem)] max-w-3xl z-50">
           <div className="glass-nav rounded-3xl px-5 py-4 flex items-center justify-between gap-4 border border-white/30 shadow-ambient">
-            {/* 시간 정보 */}
+            {/* 슬롯 수 정보 */}
             <div className="flex items-center gap-3 shrink-0">
               <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -214,49 +326,38 @@ export default function ScheduleOverlap({ members, heatmapColor = "blue", onConf
               </div>
               <div>
                 <p className="text-sm font-bold text-on-surface leading-tight">
-                  {DAY_LABELS[selectedSlot.day]}요일&nbsp;
-                  {String(selectedSlot.hour).padStart(2, "0")}:00 – {String(selectedSlot.hour + 1).padStart(2, "0")}:00
+                  {selectedKeys.size}개 슬롯 선택됨
                 </p>
                 <p className="text-[10px] text-on-surface-variant mt-0.5">
-                  {selectedSlot.free.length}명 가능 · {selectedSlot.busy.length}명 바쁨
+                  {selectedSlots.map((s) => `${DAY_LABELS[s.day]}${String(s.hour).padStart(2,"0")}:00`).join(", ")}
                 </p>
               </div>
             </div>
 
-            {/* 멤버 칩 목록 */}
+            {/* 공통 가능 멤버 칩 */}
             <div className="flex items-center gap-1.5 flex-1 overflow-x-auto px-2 min-w-0">
-              {selectedSlot.free.map((m) => (
-                <div
-                  key={m.id}
-                  style={getMemberStyle(m.colorId)}
-                  className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold shrink-0"
-                >
-                  {m.name}
-                </div>
-              ))}
-
-              {selectedSlot.busy.length > 0 && (
+              {commonFreeMembers.length > 0 ? (
                 <>
-                  {selectedSlot.free.length > 0 && (
-                    <div className="w-px h-5 bg-outline-variant/40 shrink-0 mx-0.5" />
-                  )}
-                  {selectedSlot.busy.map((m) => (
+                  <span className="text-[10px] text-on-surface-variant shrink-0">전원 가능:</span>
+                  {commonFreeMembers.map((m) => (
                     <div
                       key={m.id}
                       style={getMemberStyle(m.colorId)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-semibold shrink-0 opacity-35"
+                      className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold shrink-0"
                     >
-                      <span className="line-through">{m.name}</span>
+                      {m.name}
                     </div>
                   ))}
                 </>
+              ) : (
+                <span className="text-[10px] text-on-surface-variant">공통으로 가능한 멤버 없음</span>
               )}
             </div>
 
             {/* 버튼 */}
             <div className="flex gap-2 shrink-0">
               <button
-                onClick={() => setSelectedKey(null)}
+                onClick={() => setSelectedKeys(new Set())}
                 className="px-4 py-2 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
               >
                 취소
