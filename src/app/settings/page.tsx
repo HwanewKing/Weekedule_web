@@ -349,7 +349,7 @@ export default function SettingsPage() {
   };
 
   const initials = displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-  const SECTIONS: SettingSection[] = ["profile", "timetable", "display", "notifications", "about"];
+  const SECTIONS: SettingSection[] = ["profile", "timetable", "display", "notifications", "about", "feedback"];
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
