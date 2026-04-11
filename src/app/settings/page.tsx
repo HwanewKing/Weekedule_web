@@ -305,7 +305,7 @@ export default function SettingsPage() {
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
       {/* Top Bar */}
-      <div className="glass-nav border-b border-outline-variant/10 px-8 py-3 shrink-0">
+      <div className="glass-nav border-b border-outline-variant/10 px-4 sm:px-6 md:px-8 py-3 shrink-0">
         <h2 className="text-sm font-bold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
           {t.pageTitle}
         </h2>
@@ -331,7 +331,7 @@ export default function SettingsPage() {
         </nav>
 
         {/* 우측 컨텐츠 */}
-        <main className="flex-1 overflow-y-auto px-8 py-6">
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-6">
           <div className="max-w-lg flex flex-col gap-6">
 
             {/* ── 프로필 ── */}

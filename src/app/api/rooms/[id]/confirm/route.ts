@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/server/middleware/requireAuth";
 import { getConfirmedSlots, confirmSlots, cancelSlots } from "@/server/services/roomService";
 
+export const runtime = "edge";
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

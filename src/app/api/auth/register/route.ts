@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createUser, findUserByEmail } from "@/server/services/userService";
 import { setSessionCookie } from "@/server/auth/session";
 
+export const runtime = "edge";
+
 export async function POST(req: NextRequest) {
   try {
     const { name, email, password, language } = await req.json();

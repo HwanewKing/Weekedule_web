@@ -65,7 +65,7 @@ export default function TimetablePage() {
   return (
     <>
       {/* Topbar */}
-      <header className="glass-nav border-b border-outline-variant/10 px-8 py-3 flex items-center justify-between shrink-0 z-30">
+      <header className="glass-nav border-b border-outline-variant/10 px-4 sm:px-6 md:px-8 py-3 flex items-center justify-between shrink-0 z-30">
         <h2
           className="text-base font-bold text-on-surface"
           style={{ fontFamily: "var(--font-manrope)" }}
@@ -99,7 +99,7 @@ export default function TimetablePage() {
       </div>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto px-8 pb-8">
+      <main className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 pb-8">
         <WeekGrid events={events} onEventClick={openEdit} />
         <BottomWidgets
           events={events}

@@ -3,6 +3,8 @@ import { requireAuth } from "@/server/middleware/requireAuth";
 import { updateMemberColor, removeMember } from "@/server/services/roomService";
 import { getSessionFromCookies } from "@/server/auth/session";
 
+export const runtime = "edge";
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string; memberId: string }> }) {
   try {
     const userId = await requireAuth();

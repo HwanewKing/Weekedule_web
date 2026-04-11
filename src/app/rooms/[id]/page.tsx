@@ -201,7 +201,7 @@ export default function RoomDetailPage() {
   return (
     <>
       {/* Topbar */}
-      <header className="glass-nav border-b border-outline-variant/10 px-8 py-3 flex items-center gap-3 shrink-0 z-30">
+      <header className="glass-nav border-b border-outline-variant/10 px-4 sm:px-6 md:px-8 py-3 flex items-center gap-3 shrink-0 z-30">
         <button
           onClick={() => router.push("/rooms")}
           className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors shrink-0"
@@ -247,7 +247,7 @@ export default function RoomDetailPage() {
       </div>
 
       {/* 메인 컨텐츠 */}
-      <main className="flex-1 overflow-y-auto px-8 py-5">
+      <main className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-5">
         {tab === "overlap" && (
           <>
             <div className="mb-6">

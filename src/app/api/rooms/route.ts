@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/server/middleware/requireAuth";
 import { listRooms, createRoom } from "@/server/services/roomService";
 
+export const runtime = "edge";
+
 export async function GET() {
   try {
     const userId = await requireAuth();

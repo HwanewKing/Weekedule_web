@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/server/middleware/requireAuth";
 import { listNotifications } from "@/server/services/notificationService";
 
+export const runtime = "edge";
+
 export async function GET() {
   try {
     const userId = await requireAuth();

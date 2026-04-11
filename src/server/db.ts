@@ -1,18 +1,17 @@
-import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import { withAccelerate } from "@prisma/extension-accelerate";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
-function createPrismaClient() {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
+function createPrismaClient(): PrismaClient {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
     throw new Error("DATABASE_URL 환경변수가 설정되지 않았습니다");
   }
-  const adapter = new PrismaPg({ connectionString });
-  return new PrismaClient({
-    adapter,
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  });
+  // Runtime uses Accelerate extension; cast to PrismaClient for correct TS type inference
+  return new PrismaClient({ log: ["error"] }).$extends(
+    withAccelerate()
+  ) as unknown as PrismaClient;
 }
 
 // 빌드 타임에 인스턴스를 생성하지 않도록 lazy proxy 사용

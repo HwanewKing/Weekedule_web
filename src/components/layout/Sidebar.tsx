@@ -12,6 +12,9 @@ const NAV_LABELS = {
   en: { "/": "Timetable", "/rooms": "Rooms", "/friends": "Friends", "/notifications": "Notifications", "/settings": "Settings", "/feedback": "Feedback" },
 } as const;
 
+// 모바일 하단 바에는 5개만 표시 (피드백 제외)
+const MOBILE_NAV_HREFS = ["/", "/rooms", "/friends", "/notifications", "/settings"] as const;
+
 const NAV_ICONS: Record<string, React.ReactNode> = {
   "/": (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -55,6 +58,7 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
 
 const NAV_HREFS = ["/", "/rooms", "/friends", "/notifications", "/settings", "/feedback"] as const;
 type NavHref = typeof NAV_HREFS[number];
+type MobileNavHref = typeof MOBILE_NAV_HREFS[number];
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -88,73 +92,107 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-56 min-w-56 flex flex-col bg-surface-container-low h-full">
-      {/* Logo */}
-      <div className="px-5 pt-6 pb-5">
-        <h1
-          className="text-lg font-extrabold tracking-tight text-primary leading-none"
-          style={{ fontFamily: "var(--font-manrope)" }}
-        >
-          Weekedule
-        </h1>
-        <p className="text-[10px] text-on-surface-variant mt-0.5 font-medium tracking-wide uppercase">
-          Orchestrated Flow
-        </p>
-      </div>
+    <>
+      {/* ── 데스크탑 사이드바 (md 이상) ── */}
+      <aside className="hidden md:flex w-56 min-w-56 flex-col bg-surface-container-low h-full">
+        {/* Logo */}
+        <div className="px-5 pt-6 pb-5">
+          <h1
+            className="text-lg font-extrabold tracking-tight text-primary leading-none"
+            style={{ fontFamily: "var(--font-manrope)" }}
+          >
+            Weekedule
+          </h1>
+          <p className="text-[10px] text-on-surface-variant mt-0.5 font-medium tracking-wide uppercase">
+            Orchestrated Flow
+          </p>
+        </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 flex flex-col gap-0.5">
-        {NAV_HREFS.map((href) => {
+        {/* Nav */}
+        <nav className="flex-1 px-3 flex flex-col gap-0.5">
+          {NAV_HREFS.map((href) => {
+            const isActive = pathname === href;
+            const badge = getBadge(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 ${
+                  isActive
+                    ? "bg-surface-container-lowest text-primary shadow-ambient"
+                    : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+                }`}
+              >
+                {isActive && (
+                  <span className="absolute left-0 w-0.5 h-6 bg-primary rounded-r-full" />
+                )}
+                <span className={isActive ? "text-primary" : ""}>{NAV_ICONS[href]}</span>
+                <span>{labels[href]}</span>
+                {badge !== null && (
+                  <span className="ml-auto text-[10px] bg-primary text-on-primary rounded-full px-1.5 py-0.5 font-semibold leading-none">
+                    {badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* User */}
+        <div className="px-3 pb-5 pt-3 flex flex-col gap-1">
+          <div className="flex items-center gap-3 px-3 py-2.5 bg-surface-container rounded-xl">
+            <div className="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-xs font-bold text-primary shrink-0">
+              {initials}
+            </div>
+            <div className="overflow-hidden flex-1 min-w-0">
+              <p className="text-sm font-semibold text-on-surface truncate leading-tight">{displayName}</p>
+              <p className="text-[10px] text-on-surface-variant truncate">{user?.email ?? ""}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            {language === "en" ? "Log out" : "로그아웃"}
+          </button>
+        </div>
+      </aside>
+
+      {/* ── 모바일 하단 네비게이션 바 (md 미만) ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-container-low border-t border-outline-variant/30 flex items-stretch h-16 safe-area-bottom">
+        {MOBILE_NAV_HREFS.map((href) => {
           const isActive = pathname === href;
-          const badge = getBadge(href);
+          const badge = getBadge(href as MobileNavHref);
+          const label = labels[href as NavHref];
           return (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 ${
-                isActive
-                  ? "bg-surface-container-lowest text-primary shadow-ambient"
-                  : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-colors ${
+                isActive ? "text-primary" : "text-on-surface-variant"
               }`}
             >
               {isActive && (
-                <span className="absolute left-0 w-0.5 h-6 bg-primary rounded-r-full" />
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-b-full" />
               )}
-              <span className={isActive ? "text-primary" : ""}>{NAV_ICONS[href]}</span>
-              <span>{labels[href]}</span>
-              {badge !== null && (
-                <span className="ml-auto text-[10px] bg-primary text-on-primary rounded-full px-1.5 py-0.5 font-semibold leading-none">
-                  {badge}
-                </span>
-              )}
+              <span className="relative">
+                {NAV_ICONS[href]}
+                {badge !== null && (
+                  <span className="absolute -top-1 -right-2 text-[9px] bg-primary text-on-primary rounded-full min-w-[14px] h-[14px] flex items-center justify-center font-bold leading-none px-0.5">
+                    {badge}
+                  </span>
+                )}
+              </span>
+              <span className="text-[10px] font-medium leading-none">{label}</span>
             </Link>
           );
         })}
       </nav>
-
-      {/* User */}
-      <div className="px-3 pb-5 pt-3 flex flex-col gap-1">
-        <div className="flex items-center gap-3 px-3 py-2.5 bg-surface-container rounded-xl">
-          <div className="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-xs font-bold text-primary shrink-0">
-            {initials}
-          </div>
-          <div className="overflow-hidden flex-1 min-w-0">
-            <p className="text-sm font-semibold text-on-surface truncate leading-tight">{displayName}</p>
-            <p className="text-[10px] text-on-surface-variant truncate">{user?.email ?? ""}</p>
-          </div>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-          로그아웃
-        </button>
-      </div>
-    </aside>
+    </>
   );
 }

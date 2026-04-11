@@ -68,7 +68,7 @@ export default function FeedbackPage() {
   return (
     <>
       {/* Topbar */}
-      <header className="glass-nav border-b border-outline-variant/10 px-8 py-3 flex items-center shrink-0 z-30">
+      <header className="glass-nav border-b border-outline-variant/10 px-4 sm:px-6 md:px-8 py-3 flex items-center shrink-0 z-30">
         <h2 className="text-base font-bold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
           {t.title}
         </h2>
@@ -83,7 +83,7 @@ export default function FeedbackPage() {
       </div>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto px-8 pb-8">
+      <main className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 pb-8">
         <div className="max-w-lg flex flex-col gap-5">
 
           {/* Type selector */}

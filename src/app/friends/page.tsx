@@ -111,7 +111,7 @@ export default function FriendsPage() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="glass-nav border-b border-outline-variant/10 px-8 py-3 flex items-center justify-between shrink-0">
+      <div className="glass-nav border-b border-outline-variant/10 px-4 sm:px-6 md:px-8 py-3 flex items-center justify-between shrink-0">
         <h2 className="text-sm font-bold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
           {t.title}
         </h2>

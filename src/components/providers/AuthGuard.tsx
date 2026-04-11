@@ -43,7 +43,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     <>
       <Sidebar />
       <DataProvider>
-        <div className="flex-1 flex flex-col overflow-hidden min-w-0">{children}</div>
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0 pb-16 md:pb-0">{children}</div>
       </DataProvider>
     </>
   );
