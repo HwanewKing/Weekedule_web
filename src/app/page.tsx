@@ -38,7 +38,15 @@ export default function TimetablePage() {
       const gid = newEvents.length > 1 ? (groupId ?? crypto.randomUUID()) : undefined;
       newEvents.forEach((e) => addEvent({ ...e, groupId: gid }));
     } else if (editTarget) {
-      updateEvent(editTarget.id, newEvents[0]);
+      if (newEvents.length === 1) {
+        // 단일 이벤트 수정
+        updateEvent(editTarget.id, newEvents[0]);
+      } else {
+        // 슬롯을 추가해 그룹으로 확장 → 기존 이벤트 삭제 후 그룹 재생성
+        deleteEvent(editTarget.id);
+        const gid = crypto.randomUUID();
+        newEvents.forEach((e) => addEvent({ ...e, groupId: gid }));
+      }
     } else {
       // 신규: 슬롯이 2개 이상이면 공통 groupId 생성
       const gid = newEvents.length > 1 ? crypto.randomUUID() : undefined;

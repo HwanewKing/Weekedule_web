@@ -297,9 +297,7 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="label-field mb-0">요일 &amp; 시간</label>
-              {!isEdit && (
-                <span className="text-[10px] text-on-surface-variant">{slots.length}개 슬롯</span>
-              )}
+              <span className="text-[10px] text-on-surface-variant">{slots.length}개 슬롯</span>
             </div>
 
             <div className="flex flex-col gap-3">
@@ -352,7 +350,7 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
                     </select>
 
                     {/* 삭제 버튼 (슬롯이 2개 이상일 때만) */}
-                    {!isEdit && slots.length > 1 && (
+                    {slots.length > 1 && (
                       <button
                         onClick={() => removeSlot(slot._key)}
                         className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors"
@@ -378,18 +376,16 @@ export default function EventModal({ open, editEvent, editEvents, defaultDay = 0
               ))}
             </div>
 
-            {/* 슬롯 추가 버튼 */}
-            {!isEdit && (
-              <button
-                onClick={addSlot}
-                className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-primary hover:opacity-70 transition-opacity"
+            {/* 슬롯 추가 버튼 — 편집/생성 모두 표시 */}
+            <button
+              onClick={addSlot}
+              className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-primary hover:opacity-70 transition-opacity"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
                 시간 및 장소 추가
-              </button>
-            )}
+            </button>
           </div>
 
           {/* 메모 */}
