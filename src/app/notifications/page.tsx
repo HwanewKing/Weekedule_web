@@ -11,6 +11,19 @@ interface NotiT {
   empty: string; emptyDesc: string; accept: string; decline: string;
   justNow: string; minutesAgo: (m: number) => string;
   hoursAgo: (h: number) => string; daysAgo: (d: number) => string;
+  bodyTemplates: {
+    friend_request:    (meta: Record<string, string>) => string;
+    meeting_confirmed: (meta: Record<string, string>) => string;
+    room_invite:       (meta: Record<string, string>) => string;
+    member_joined:     (meta: Record<string, string>) => string;
+    schedule_conflict: (meta: Record<string, string>) => string;
+  };
+}
+
+function getBody(n: Notification, t: NotiT): string {
+  if (!n.meta || !n.type) return n.body;
+  const tpl = t.bodyTemplates[n.type as keyof typeof t.bodyTemplates];
+  return tpl ? tpl(n.meta as Record<string, string>) : n.body;
 }
 
 const T: Record<string, NotiT> = {
@@ -32,6 +45,13 @@ const T: Record<string, NotiT> = {
     minutesAgo: (m: number) => `${m}분 전`,
     hoursAgo: (h: number) => `${h}시간 전`,
     daysAgo: (d: number) => d === 1 ? "어제" : `${d}일 전`,
+    bodyTemplates: {
+      friend_request:    (m) => `${m.fromName ?? "누군가"}님이 친구 요청을 보냈어요`,
+      meeting_confirmed: (m) => m.fromName ? `${m.fromName}님이 친구 요청을 수락했어요` : "친구 요청이 수락됐어요",
+      room_invite:       (m) => `${m.roomName ?? "Room"}에 초대됐어요`,
+      member_joined:     (m) => `${m.fromName ?? "누군가"}님이 ${m.roomName ?? "Room"}에 참여했어요`,
+      schedule_conflict: (m) => `${m.roomName ?? "일정"}에 시간 충돌이 감지됐어요`,
+    },
   },
   en: {
     title: "Notifications",
@@ -51,6 +71,13 @@ const T: Record<string, NotiT> = {
     minutesAgo: (m: number) => `${m}m ago`,
     hoursAgo: (h: number) => `${h}h ago`,
     daysAgo: (d: number) => d === 1 ? "Yesterday" : `${d}d ago`,
+    bodyTemplates: {
+      friend_request:    (m) => `${m.fromName ?? "Someone"} sent you a friend request`,
+      meeting_confirmed: (m) => m.fromName ? `${m.fromName} accepted your friend request` : "Your friend request was accepted",
+      room_invite:       (m) => `You were invited to ${m.roomName ?? "a room"}`,
+      member_joined:     (m) => `${m.fromName ?? "Someone"} joined ${m.roomName ?? "a room"}`,
+      schedule_conflict: (m) => `A scheduling conflict was detected in ${m.roomName ?? "your schedule"}`,
+    },
   },
 };
 
@@ -155,7 +182,7 @@ function NotificationItem({ n, t, onRead, onDismiss, onAccept, onDecline }: {
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <p className={`text-sm leading-snug ${n.read ? "text-on-surface" : "font-semibold text-on-surface"}`}>
-            {n.body}
+            {getBody(n, t)}
           </p>
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="text-[10px] text-on-surface-variant whitespace-nowrap">
