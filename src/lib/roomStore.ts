@@ -9,6 +9,8 @@ interface RoomStore {
   fetchRooms: () => Promise<void>;
   fetchConfirmedSlots: (roomId: string) => Promise<void>;
   addConfirmedSlots: (roomId: string, slots: ConfirmedSlot[]) => void;
+  removeConfirmedSlots: (roomId: string, ids: string[]) => void;
+  setConfirmedSlots: (roomId: string, slots: ConfirmedSlot[]) => void;
   addRoom: (data: { name: string; description: string; color: RoomColor; icon: RoomIcon }) => Promise<void>;
   updateRoom: (id: string, updates: Partial<Room>) => Promise<void>;
   deleteRoom: (id: string) => Promise<void>;
@@ -72,6 +74,22 @@ export const useRoomStore = create<RoomStore>()((set, get) => ({
         ...state.confirmedSlots,
         [roomId]: [...(state.confirmedSlots[roomId] ?? []), ...slots],
       },
+    }));
+  },
+
+  removeConfirmedSlots: (roomId: string, ids: string[]) => {
+    const idSet = new Set(ids);
+    set((state) => ({
+      confirmedSlots: {
+        ...state.confirmedSlots,
+        [roomId]: (state.confirmedSlots[roomId] ?? []).filter((s) => !idSet.has(s.id)),
+      },
+    }));
+  },
+
+  setConfirmedSlots: (roomId: string, slots: ConfirmedSlot[]) => {
+    set((state) => ({
+      confirmedSlots: { ...state.confirmedSlots, [roomId]: slots },
     }));
   },
 

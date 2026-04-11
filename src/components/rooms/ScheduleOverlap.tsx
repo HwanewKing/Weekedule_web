@@ -33,7 +33,10 @@ interface ScheduleOverlapProps {
   members: RoomMember[];
   heatmapColor?: string;
   confirmedSlots?: ConfirmedSlot[];
-  onConfirm?: (slots: { dayOfWeek: number; startTime: string; endTime: string }[]) => void;
+  onConfirm?: (
+    newSlots: { dayOfWeek: number; startTime: string; endTime: string }[],
+    cancelSlotIds: string[]
+  ) => void;
 }
 
 interface TooltipInfo {
@@ -56,19 +59,23 @@ export default function ScheduleOverlap({
   const [activeIds, setActiveIds] = useState<Set<string>>(
     () => new Set(members.map((m) => m.id))
   );
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
+  const [selectedKeys,  setSelectedKeys]  = useState<Set<string>>(() => new Set());
+  const [cancellingKeys, setCancellingKeys] = useState<Set<string>>(() => new Set());
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null);
 
   const activeCount = activeIds.size;
 
-  // 확정된 슬롯 키 세트
-  const confirmedKeySet = useMemo(() => {
-    const set = new Set<string>();
+  // 확정된 슬롯 키 세트 & key→id 맵
+  const { confirmedKeySet, confirmedIdByKey } = useMemo(() => {
+    const keySet = new Set<string>();
+    const idMap  = new Map<string, string>();
     for (const s of confirmedSlots) {
       const hour = parseInt(s.startTime.split(":")[0], 10);
-      set.add(slotKey(s.dayOfWeek, hour));
+      const k    = slotKey(s.dayOfWeek, hour);
+      keySet.add(k);
+      idMap.set(k, s.id);
     }
-    return set;
+    return { confirmedKeySet: keySet, confirmedIdByKey: idMap };
   }, [confirmedSlots]);
 
   // 선택된 슬롯 정보 목록
@@ -98,13 +105,24 @@ export default function ScheduleOverlap({
     });
   };
 
-  const handleSlotClick = useCallback((key: string) => {
-    setSelectedKeys((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  const handleSlotClick = useCallback((key: string, isConfirmed: boolean) => {
+    if (isConfirmed) {
+      // 확정 슬롯: 취소 대기 ↔ 복원 토글
+      setCancellingKeys((prev) => {
+        const next = new Set(prev);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        return next;
+      });
+    } else {
+      // 일반 슬롯: 선택 토글
+      setSelectedKeys((prev) => {
+        const next = new Set(prev);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        return next;
+      });
+    }
   }, []);
 
   const handleMouseEnter = useCallback(
@@ -130,14 +148,18 @@ export default function ScheduleOverlap({
   }, []);
 
   const handleConfirm = () => {
-    if (selectedSlots.length === 0) return;
-    const slots = selectedSlots.map(({ day, hour }) => ({
+    if (selectedKeys.size === 0 && cancellingKeys.size === 0) return;
+    const newSlots = selectedSlots.map(({ day, hour }) => ({
       dayOfWeek: day,
       startTime: `${String(hour).padStart(2, "0")}:00`,
       endTime:   `${String(hour + 1).padStart(2, "0")}:00`,
     }));
-    onConfirm?.(slots);
+    const cancelSlotIds = [...cancellingKeys]
+      .map((k) => confirmedIdByKey.get(k))
+      .filter(Boolean) as string[];
+    onConfirm?.(newSlots, cancelSlotIds);
     setSelectedKeys(new Set());
+    setCancellingKeys(new Set());
   };
 
   return (
@@ -228,14 +250,15 @@ export default function ScheduleOverlap({
                   const key        = slotKey(dayIdx, hour);
                   const busyList   = getBusyMembers(members, activeIds, dayIdx, hour);
                   const ratio      = activeCount > 0 ? busyList.length / activeCount : 0;
-                  const isSelected = selectedKeys.has(key);
-                  const isConfirmed = confirmedKeySet.has(key);
-                  const isWeekend  = dayIdx >= 5;
+                  const isSelected   = selectedKeys.has(key);
+                  const isConfirmed  = confirmedKeySet.has(key);
+                  const isCancelling = cancellingKeys.has(key);
+                  const isWeekend    = dayIdx >= 5;
 
                   return (
                     <button
                       key={key}
-                      onClick={() => handleSlotClick(key)}
+                      onClick={() => handleSlotClick(key, isConfirmed)}
                       onMouseEnter={(e) => handleMouseEnter(e, dayIdx, hour)}
                       onMouseLeave={handleMouseLeave}
                       style={ratio > 0 ? getHeatStyle(ratio, heatmapColor) : undefined}
@@ -243,8 +266,10 @@ export default function ScheduleOverlap({
                         "relative h-10 rounded-xl transition-all duration-150",
                         isSelected
                           ? "ring-[3px] ring-primary ring-offset-2 ring-offset-surface-container-lowest scale-105 z-10"
+                          : isCancelling
+                          ? "ring-[3px] ring-red-500 opacity-60 hover:z-10"
                           : isConfirmed
-                          ? "ring-[3px] ring-green-500"
+                          ? "ring-[3px] ring-green-500 hover:z-10"
                           : "hover:scale-[1.06] hover:z-10",
                         ratio === 0
                           ? isWeekend
@@ -253,8 +278,13 @@ export default function ScheduleOverlap({
                           : "",
                       ].join(" ")}
                     >
-                      {/* 확정 체크 — 중앙 배치 */}
-                      {isConfirmed && (
+                      {/* 확정 체크 / 취소 X — 중앙 배치 */}
+                      {isCancelling && (
+                        <span className="absolute inset-0 flex items-center justify-center text-red-400 font-bold text-sm">
+                          ✕
+                        </span>
+                      )}
+                      {isConfirmed && !isCancelling && (
                         <span className="absolute inset-0 flex items-center justify-center text-green-400 font-bold text-sm">
                           ✓
                         </span>
@@ -315,7 +345,7 @@ export default function ScheduleOverlap({
       )}
 
       {/* ── 하단 플로팅 바 ── */}
-      {selectedKeys.size > 0 && (
+      {(selectedKeys.size > 0 || cancellingKeys.size > 0) && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-10rem)] max-w-3xl z-50">
           <div className="glass-nav rounded-3xl px-5 py-4 flex items-center justify-between gap-4 border border-white/30 shadow-ambient">
             {/* 슬롯 수 정보 */}
@@ -330,38 +360,52 @@ export default function ScheduleOverlap({
               </div>
               <div>
                 <p className="text-sm font-bold text-on-surface leading-tight">
-                  {selectedKeys.size}개 슬롯 선택됨
+                  {selectedKeys.size > 0 && cancellingKeys.size > 0
+                    ? `${selectedKeys.size}개 추가 · ${cancellingKeys.size}개 취소`
+                    : selectedKeys.size > 0
+                    ? `${selectedKeys.size}개 슬롯 선택됨`
+                    : `${cancellingKeys.size}개 슬롯 취소 예정`}
                 </p>
                 <p className="text-[10px] text-on-surface-variant mt-0.5">
-                  {selectedSlots.map((s) => `${DAY_LABELS[s.day]}${String(s.hour).padStart(2,"0")}:00`).join(", ")}
+                  {[
+                    ...selectedSlots.map((s) => `+${DAY_LABELS[s.day]}${String(s.hour).padStart(2,"0")}:00`),
+                    ...[...cancellingKeys].map((k) => {
+                      const [d, h] = k.split("-").map(Number);
+                      return `−${DAY_LABELS[d]}${String(h).padStart(2,"0")}:00`;
+                    }),
+                  ].join("  ")}
                 </p>
               </div>
             </div>
 
-            {/* 공통 가능 멤버 칩 */}
+            {/* 공통 가능 멤버 칩 (새 슬롯 선택 시만) */}
             <div className="flex items-center gap-1.5 flex-1 overflow-x-auto px-2 min-w-0">
-              {commonFreeMembers.length > 0 ? (
-                <>
-                  <span className="text-[10px] text-on-surface-variant shrink-0">전원 가능:</span>
-                  {commonFreeMembers.map((m) => (
-                    <div
-                      key={m.id}
-                      style={getMemberStyle(m.colorId)}
-                      className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold shrink-0"
-                    >
-                      {m.name}
-                    </div>
-                  ))}
-                </>
+              {selectedKeys.size > 0 ? (
+                commonFreeMembers.length > 0 ? (
+                  <>
+                    <span className="text-[10px] text-on-surface-variant shrink-0">전원 가능:</span>
+                    {commonFreeMembers.map((m) => (
+                      <div
+                        key={m.id}
+                        style={getMemberStyle(m.colorId)}
+                        className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold shrink-0"
+                      >
+                        {m.name}
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <span className="text-[10px] text-on-surface-variant">공통으로 가능한 멤버 없음</span>
+                )
               ) : (
-                <span className="text-[10px] text-on-surface-variant">공통으로 가능한 멤버 없음</span>
+                <span className="text-[10px] text-red-400 font-semibold">확정 슬롯을 취소합니다</span>
               )}
             </div>
 
             {/* 버튼 */}
             <div className="flex gap-2 shrink-0">
               <button
-                onClick={() => setSelectedKeys(new Set())}
+                onClick={() => { setSelectedKeys(new Set()); setCancellingKeys(new Set()); }}
                 className="px-4 py-2 rounded-xl text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
               >
                 취소

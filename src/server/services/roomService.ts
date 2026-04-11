@@ -119,6 +119,12 @@ export async function confirmSlots(
   return getConfirmedSlots(roomId);
 }
 
+export async function cancelSlots(roomId: string, ids: string[]) {
+  return db.confirmedSlot.deleteMany({
+    where: { id: { in: ids }, roomId },
+  });
+}
+
 export async function updateRoom(id: string, ownerId: string, data: Partial<RoomInput>) {
   return db.room.updateMany({ where: { id, ownerId }, data });
 }

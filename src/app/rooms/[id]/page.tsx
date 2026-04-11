@@ -20,7 +20,7 @@ type Tab = "overlap" | "members";
 export default function RoomDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router  = useRouter();
-  const { rooms, updateRoom, deleteRoom, removeMember, updateMemberColor, confirmedSlots, fetchConfirmedSlots, addConfirmedSlots } = useRoomStore();
+  const { rooms, updateRoom, deleteRoom, removeMember, updateMemberColor, confirmedSlots, fetchConfirmedSlots, setConfirmedSlots } = useRoomStore();
   const { user } = useAuthStore();
 
   const room = rooms.find((r) => r.id === id);
@@ -58,29 +58,32 @@ export default function RoomDetailPage() {
   };
 
   const handleConfirmSchedule = async (
-    slots: { dayOfWeek: number; startTime: string; endTime: string }[]
+    newSlots: { dayOfWeek: number; startTime: string; endTime: string }[],
+    cancelSlotIds: string[]
   ) => {
-    if (!room || slots.length === 0) return;
+    if (!room) return;
+    if (newSlots.length === 0 && cancelSlotIds.length === 0) return;
 
-    // 1) DB에 확정 슬롯 저장
+    // 1) DB에 추가/취소 반영 (단일 POST로 처리)
     const res = await fetch(`/api/rooms/${room.id}/confirm`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slots }),
+      body: JSON.stringify({ slots: newSlots, cancelIds: cancelSlotIds }),
     });
     if (res.ok) {
       const data = await res.json();
-      const newSlots = (data.slots ?? []).map((s: any) => ({
+      // 서버에서 반환된 최신 전체 슬롯으로 스토어 교체
+      const all = (data.slots ?? []).map((s: any) => ({
         ...s,
         createdAt: typeof s.createdAt === "string" ? s.createdAt : new Date(s.createdAt).toISOString(),
       }));
-      addConfirmedSlots(room.id, newSlots);
+      setConfirmedSlots(room.id, all);
     }
 
-    // 2) 로그인 유저의 개인 시간표에 CalendarEvent 생성
-    if (user) {
+    // 2) 새 슬롯 → 로그인 유저 개인 시간표에 CalendarEvent 생성
+    if (user && newSlots.length > 0) {
       await Promise.all(
-        slots.map((s) =>
+        newSlots.map((s) =>
           fetch("/api/events", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -99,11 +102,18 @@ export default function RoomDetailPage() {
 
     // 3) 토스트 표시
     const days = ["월", "화", "수", "목", "금", "토", "일"];
-    const label =
-      slots.length === 1
-        ? `${days[slots[0].dayOfWeek]}요일 ${slots[0].startTime}–${slots[0].endTime}`
-        : `${slots.length}개 슬롯`;
-    setConfirmed({ label: `${label} 확정되었어요!` });
+    const parts: string[] = [];
+    if (newSlots.length > 0) {
+      parts.push(
+        newSlots.length === 1
+          ? `${days[newSlots[0].dayOfWeek]}요일 ${newSlots[0].startTime} 확정`
+          : `${newSlots.length}개 슬롯 확정`
+      );
+    }
+    if (cancelSlotIds.length > 0) {
+      parts.push(`${cancelSlotIds.length}개 슬롯 취소`);
+    }
+    setConfirmed({ label: parts.join(" · ") + "되었어요!" });
     setTimeout(() => setConfirmed(null), 4000);
   };
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/server/middleware/requireAuth";
-import { getConfirmedSlots, confirmSlots } from "@/server/services/roomService";
+import { getConfirmedSlots, confirmSlots, cancelSlots } from "@/server/services/roomService";
 
 export async function GET(
   _req: NextRequest,
@@ -25,12 +25,19 @@ export async function POST(
     await requireAuth();
     const { id: roomId } = await params;
     const body = await req.json();
-    const slots: { dayOfWeek: number; startTime: string; endTime: string }[] =
-      body.slots ?? [];
-    if (!Array.isArray(slots) || slots.length === 0) {
-      return NextResponse.json({ error: "slots 배열이 필요해요" }, { status: 400 });
+    const newSlots: { dayOfWeek: number; startTime: string; endTime: string }[] = body.slots ?? [];
+    const cancelIds: string[] = body.cancelIds ?? [];
+
+    // 새 슬롯 추가
+    if (newSlots.length > 0) {
+      await confirmSlots(roomId, newSlots);
     }
-    const all = await confirmSlots(roomId, slots);
+    // 취소할 슬롯 삭제
+    if (cancelIds.length > 0) {
+      await cancelSlots(roomId, cancelIds);
+    }
+
+    const all = await getConfirmedSlots(roomId);
     return NextResponse.json({ slots: all });
   } catch (err) {
     if (err instanceof NextResponse) return err;
