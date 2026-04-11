@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useFriendStore, getFriends } from "@/lib/friendStore";
+import { useFriendStore } from "@/lib/friendStore";
 import { useAuthStore } from "@/lib/authStore";
 import { useRoomStore } from "@/lib/roomStore";
-import { getMemberStyle, colorIdxToId } from "@/types/room";
+import { getMemberStyle } from "@/types/room";
 
 type InviteTab = "link" | "friend";
 
@@ -25,12 +25,11 @@ export default function InviteModal({ roomId, onClose }: Props) {
   const [inviteLink] = useState(() => generateInviteLink(roomId));
 
   const { user } = useAuthStore();
-  const { relations } = useFriendStore();
+  const { friends } = useFriendStore();
   const { rooms, addMember } = useRoomStore();
 
-  const friends = getFriends(relations, user?.id ?? "");
   const room = rooms.find((r) => r.id === roomId);
-  const existingMemberIds = new Set(room?.members.map((m) => m.id) ?? []);
+  const existingMemberUserIds = new Set(room?.members.map((m) => m.id) ?? []);
 
   const handleCopy = async () => {
     try { await navigator.clipboard.writeText(inviteLink); } catch { /* fallback */ }
@@ -38,16 +37,12 @@ export default function InviteModal({ roomId, onClose }: Props) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleInviteFriend = (friend: ReturnType<typeof getFriends>[number]) => {
-    if (!room) return;
-    addMember(roomId, {
-      id: friend.userId,
-      name: friend.name,
-      initials: friend.initials,
-      colorId: colorIdxToId(room.members.length),
-      events: [], // 백엔드 연동 전까지는 빈 배열
-    });
-    setAddedIds((prev) => new Set(prev).add(friend.userId));
+  const handleInviteFriend = async (friendUserId: string) => {
+    if (!room || !user) return;
+    const result = await addMember(roomId, friendUserId);
+    if (!result.error) {
+      setAddedIds((prev) => new Set(prev).add(friendUserId));
+    }
   };
 
   return (
@@ -103,7 +98,7 @@ export default function InviteModal({ roomId, onClose }: Props) {
               ) : (
                 <div className="flex flex-col gap-1 max-h-72 overflow-y-auto -mx-1 px-1">
                   {friends.map((friend) => {
-                    const isAlreadyMember = existingMemberIds.has(friend.userId);
+                    const isAlreadyMember = existingMemberUserIds.has(friend.userId);
                     const isAdded = addedIds.has(friend.userId);
                     const memberStyle = getMemberStyle(friend.colorId);
                     return (
@@ -132,7 +127,7 @@ export default function InviteModal({ roomId, onClose }: Props) {
                             </span>
                           ) : (
                             <button
-                              onClick={() => handleInviteFriend(friend)}
+                              onClick={() => handleInviteFriend(friend.userId)}
                               className="px-3 py-1.5 rounded-full btn-gradient text-xs font-bold text-on-primary"
                             >
                               초대

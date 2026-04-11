@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useFriendStore, getPendingReceived } from "@/lib/friendStore";
+import { useFriendStore } from "@/lib/friendStore";
 import { useNotificationStore } from "@/lib/notificationStore";
 import { useSettingsStore } from "@/lib/settingsStore";
 import { useAuthStore } from "@/lib/authStore";
@@ -55,8 +55,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router   = useRouter();
   const { user, logout } = useAuthStore();
-  const { relations } = useFriendStore();
-  const pendingRequests = getPendingReceived(relations, user?.id ?? "");
+  const { pendingIn: pendingRequests } = useFriendStore();
   const { notifications } = useNotificationStore();
   const { language } = useSettingsStore();
 

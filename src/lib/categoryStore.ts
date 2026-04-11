@@ -1,7 +1,6 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 export interface CategoryConfig {
   id: string;
@@ -25,52 +24,79 @@ export const PRESET_COLORS: string[] = [
   "#607D8B", // 블루그레이
 ];
 
-const DEFAULT_CATEGORIES: CategoryConfig[] = [
-  { id: "class",    label: "수업",   color: "#4F6CF5" },
-  { id: "meeting",  label: "미팅",   color: "#9C6FDE" },
-  { id: "deepwork", label: "집중",   color: "#2BB5A0" },
-  { id: "personal", label: "개인",   color: "#4CAF50" },
-  { id: "break",    label: "휴식",   color: "#9E9E9E" },
-];
-
 interface CategoryStore {
   categories: CategoryConfig[];
-  addCategory: (label: string, color: string) => string;
-  updateCategory: (id: string, label: string, color: string) => void;
-  deleteCategory: (id: string) => void;
+  fetchCategories: () => Promise<void>;
+  addCategory: (label: string, color: string) => Promise<string>;
+  updateCategory: (id: string, label: string, color: string) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
   getCategoryById: (id: string) => CategoryConfig | undefined;
 }
 
-export const useCategoryStore = create<CategoryStore>()(
-  persist(
-    (set, get) => ({
-      categories: DEFAULT_CATEGORIES,
+export const useCategoryStore = create<CategoryStore>()((set, get) => ({
+  categories: [],
 
-      addCategory: (label, color) => {
-        const id = `cat_${Date.now()}`;
-        set((s) => ({ categories: [...s.categories, { id, label, color }] }));
-        return id;
-      },
+  fetchCategories: async () => {
+    const res = await fetch("/api/categories");
+    if (!res.ok) return;
+    const data = await res.json();
+    set({ categories: data.categories ?? [] });
+  },
 
-      updateCategory: (id, label, color) => {
+  addCategory: async (label, color) => {
+    const tempId = `temp_${Date.now()}`;
+    set((s) => ({ categories: [...s.categories, { id: tempId, label, color }] }));
+    try {
+      const res = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label, color }),
+      });
+      if (res.ok) {
+        const data = await res.json();
         set((s) => ({
-          categories: s.categories.map((c) =>
-            c.id === id ? { ...c, label, color } : c
-          ),
+          categories: s.categories.map((c) => (c.id === tempId ? data.category : c)),
         }));
-      },
+        return data.category.id;
+      } else {
+        set((s) => ({ categories: s.categories.filter((c) => c.id !== tempId) }));
+      }
+    } catch {
+      set((s) => ({ categories: s.categories.filter((c) => c.id !== tempId) }));
+    }
+    return tempId;
+  },
 
-      deleteCategory: (id) => {
-        set((s) => ({
-          categories: s.categories.filter((c) => c.id !== id),
-        }));
-      },
+  updateCategory: async (id, label, color) => {
+    const prev = get().categories;
+    set((s) => ({
+      categories: s.categories.map((c) => (c.id === id ? { ...c, label, color } : c)),
+    }));
+    try {
+      const res = await fetch(`/api/categories/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label, color }),
+      });
+      if (!res.ok) set({ categories: prev });
+    } catch {
+      set({ categories: prev });
+    }
+  },
 
-      getCategoryById: (id) => get().categories.find((c) => c.id === id),
-    }),
-    { name: "weekedule-categories" }
-  )
-);
+  deleteCategory: async (id) => {
+    const prev = get().categories;
+    set((s) => ({ categories: s.categories.filter((c) => c.id !== id) }));
+    try {
+      const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+      if (!res.ok) set({ categories: prev });
+    } catch {
+      set({ categories: prev });
+    }
+  },
+
+  getCategoryById: (id) => get().categories.find((c) => c.id === id),
+}));
 
 /** hex 색상에서 EventCard 스타일 값 반환 */
 export function getCategoryStyle(color: string) {

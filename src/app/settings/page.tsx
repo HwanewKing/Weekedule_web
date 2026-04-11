@@ -265,7 +265,7 @@ export default function SettingsPage() {
     notifEnabled, setNotifEnabled,
   } = useSettingsStore();
 
-  const { user, updateName } = useAuthStore();
+  const { user, updateName, logout } = useAuthStore();
   const displayName = user?.name ?? "";
 
   const t = T[language];
@@ -427,7 +427,10 @@ export default function SettingsPage() {
                 {/* 계정 관리 */}
                 <Section title={t.profile.accountManage}>
                   <Row label={t.profile.logout} description={t.profile.logoutDesc}>
-                    <button className="px-3 py-1.5 rounded-xl border border-outline-variant text-xs font-semibold text-on-surface-variant hover:bg-surface-container transition-colors">
+                    <button
+                      onClick={() => logout()}
+                      className="px-3 py-1.5 rounded-xl border border-outline-variant text-xs font-semibold text-on-surface-variant hover:bg-surface-container transition-colors"
+                    >
                       {t.profile.logout}
                     </button>
                   </Row>

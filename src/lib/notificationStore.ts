@@ -1,7 +1,6 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 export type NotificationType =
   | "friend_request"
@@ -27,61 +26,59 @@ export interface Notification {
 
 interface NotificationStore {
   notifications: Notification[];
-  addNotification: (n: Omit<Notification, "id" | "time" | "read">) => void;
-  markRead: (id: string) => void;
-  markAllRead: () => void;
-  dismiss: (id: string) => void;
-  acceptAction: (id: string) => void;
-  declineAction: (id: string) => void;
+  fetchNotifications: () => Promise<void>;
+  markRead: (id: string) => Promise<void>;
+  markAllRead: () => Promise<void>;
+  dismiss: (id: string) => Promise<void>;
 }
 
-export const useNotificationStore = create<NotificationStore>()(
-  persist(
-    (set) => ({
-      notifications: [],
+export const useNotificationStore = create<NotificationStore>()((set, get) => ({
+  notifications: [],
 
-      addNotification: (n) =>
-        set((s) => ({
-          notifications: [
-            {
-              ...n,
-              id: crypto.randomUUID(),
-              time: new Date().toISOString(),
-              read: false,
-            },
-            ...s.notifications,
-          ],
-        })),
+  fetchNotifications: async () => {
+    const res = await fetch("/api/notifications");
+    if (!res.ok) return;
+    const data = await res.json();
+    set({
+      notifications: (data.notifications ?? []).map((n: Notification & { time: Date }) => ({
+        ...n,
+        time: typeof n.time === "string" ? n.time : new Date(n.time).toISOString(),
+      })),
+    });
+  },
 
-      markRead: (id) =>
-        set((s) => ({
-          notifications: s.notifications.map((n) =>
-            n.id === id ? { ...n, read: true } : n
-          ),
-        })),
+  markRead: async (id) => {
+    const prev = get().notifications;
+    set((s) => ({
+      notifications: s.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
+    }));
+    try {
+      const res = await fetch(`/api/notifications/${id}`, { method: "PATCH" });
+      if (!res.ok) set({ notifications: prev });
+    } catch {
+      set({ notifications: prev });
+    }
+  },
 
-      markAllRead: () =>
-        set((s) => ({
-          notifications: s.notifications.map((n) => ({ ...n, read: true })),
-        })),
+  markAllRead: async () => {
+    const prev = get().notifications;
+    set((s) => ({ notifications: s.notifications.map((n) => ({ ...n, read: true })) }));
+    try {
+      const res = await fetch("/api/notifications/mark-all-read", { method: "POST" });
+      if (!res.ok) set({ notifications: prev });
+    } catch {
+      set({ notifications: prev });
+    }
+  },
 
-      dismiss: (id) =>
-        set((s) => ({
-          notifications: s.notifications.filter((n) => n.id !== id),
-        })),
-
-      acceptAction: (id) =>
-        set((s) => ({
-          notifications: s.notifications.map((n) =>
-            n.id === id ? { ...n, read: true, actionable: false } : n
-          ),
-        })),
-
-      declineAction: (id) =>
-        set((s) => ({
-          notifications: s.notifications.filter((n) => n.id !== id),
-        })),
-    }),
-    { name: "weekedule-notifications" }
-  )
-);
+  dismiss: async (id) => {
+    const prev = get().notifications;
+    set((s) => ({ notifications: s.notifications.filter((n) => n.id !== id) }));
+    try {
+      const res = await fetch(`/api/notifications/${id}`, { method: "DELETE" });
+      if (!res.ok) set({ notifications: prev });
+    } catch {
+      set({ notifications: prev });
+    }
+  },
+}));

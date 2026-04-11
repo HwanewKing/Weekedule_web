@@ -4,26 +4,32 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/lib/authStore";
 import Sidebar from "@/components/layout/Sidebar";
+import DataProvider from "./DataProvider";
 
 const PUBLIC_PATHS = ["/login", "/signup"];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
-  const router   = useRouter();
-  const pathname = usePathname();
-  const { user } = useAuthStore();
+  const router    = useRouter();
+  const pathname  = usePathname();
+  const { user, _hydrated, fetchMe } = useAuthStore();
 
   const isPublic = PUBLIC_PATHS.includes(pathname);
 
+  // 앱 시작 시 서버 세션 확인
   useEffect(() => {
-    if (!user && !isPublic) {
-      router.replace("/login");
-    }
-    if (user && isPublic) {
-      router.replace("/");
-    }
-  }, [user, isPublic, router]);
+    fetchMe();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 리디렉트 중에는 아무것도 렌더링하지 않음
+  useEffect(() => {
+    if (!_hydrated) return;
+    if (!user && !isPublic) router.replace("/login");
+    if (user && isPublic) router.replace("/");
+  }, [user, isPublic, _hydrated, router]);
+
+  // 세션 확인 전 (hydration 대기)
+  if (!_hydrated) return null;
+
+  // 리디렉트 중에는 렌더링 안 함
   if (!user && !isPublic) return null;
   if (user && isPublic) return null;
 
@@ -32,11 +38,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     return <div className="flex-1 flex flex-col overflow-hidden min-w-0">{children}</div>;
   }
 
-  // 인증된 페이지: 사이드바 포함
+  // 인증된 페이지: 사이드바 + 데이터 로딩
   return (
     <>
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">{children}</div>
+      <DataProvider>
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">{children}</div>
+      </DataProvider>
     </>
   );
 }

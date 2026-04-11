@@ -7,49 +7,83 @@ export type Theme    = "light" | "dark" | "system";
 export type Language = "ko" | "en";
 
 export interface SettingsStore {
-  // 시간표
   startOfWeek: "mon" | "sun";
   setStartOfWeek: (v: "mon" | "sun") => void;
   showWeekends: boolean;
   setShowWeekends: (v: boolean) => void;
-  gridStart: number; // 시 단위 (6~12)
-  gridEnd: number;   // 시 단위 (18~24)
+  gridStart: number;
+  gridEnd: number;
   setGridStart: (v: number) => void;
   setGridEnd: (v: number) => void;
 
-  // 디스플레이
   theme: Theme;
   setTheme: (v: Theme) => void;
   language: Language;
   setLanguage: (v: Language) => void;
 
-  // 알림
   notifEnabled: Record<NotificationType, boolean>;
   setNotifEnabled: (type: NotificationType, value: boolean) => void;
+
+  fetchSettings: () => Promise<void>;
 }
 
-export const useSettingsStore = create<SettingsStore>((set) => ({
+const DEFAULT_NOTIF: Record<NotificationType, boolean> = {
+  friend_request:    true,
+  room_invite:       true,
+  meeting_confirmed: true,
+  member_joined:     true,
+  schedule_conflict: true,
+};
+
+async function patchSettings(data: Record<string, unknown>) {
+  try {
+    await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  } catch {
+    // 무시 (낙관적 업데이트 유지)
+  }
+}
+
+export const useSettingsStore = create<SettingsStore>((set, get) => ({
   startOfWeek: "mon",
-  setStartOfWeek: (v) => set({ startOfWeek: v }),
   showWeekends: true,
-  setShowWeekends: (v) => set({ showWeekends: v }),
   gridStart: 8,
   gridEnd: 22,
-  setGridStart: (v) => set({ gridStart: v }),
-  setGridEnd:   (v) => set({ gridEnd: v }),
-
   theme: "system",
-  setTheme: (v) => set({ theme: v }),
   language: "ko",
-  setLanguage: (v) => set({ language: v }),
+  notifEnabled: DEFAULT_NOTIF,
 
-  notifEnabled: {
-    friend_request:    true,
-    room_invite:       true,
-    meeting_confirmed: true,
-    member_joined:     true,
-    schedule_conflict: true,
+  fetchSettings: async () => {
+    const res = await fetch("/api/settings");
+    if (!res.ok) return;
+    const data = await res.json();
+    const s = data.settings;
+    if (!s) return;
+    set({
+      startOfWeek: s.startOfWeek ?? "mon",
+      showWeekends: s.showWeekends ?? true,
+      gridStart: s.gridStart ?? 8,
+      gridEnd: s.gridEnd ?? 22,
+      theme: s.theme ?? "system",
+      language: s.language ?? "ko",
+      notifEnabled: s.notifJson ? { ...DEFAULT_NOTIF, ...JSON.parse(s.notifJson) } : DEFAULT_NOTIF,
+    });
   },
-  setNotifEnabled: (type, value) =>
-    set((s) => ({ notifEnabled: { ...s.notifEnabled, [type]: value } })),
+
+  setStartOfWeek: (v) => { set({ startOfWeek: v }); patchSettings({ startOfWeek: v }); },
+  setShowWeekends: (v) => { set({ showWeekends: v }); patchSettings({ showWeekends: v }); },
+  setGridStart: (v) => { set({ gridStart: v }); patchSettings({ gridStart: v }); },
+  setGridEnd: (v) => { set({ gridEnd: v }); patchSettings({ gridEnd: v }); },
+  setTheme: (v) => { set({ theme: v }); patchSettings({ theme: v }); },
+  setLanguage: (v) => { set({ language: v }); patchSettings({ language: v }); },
+  setNotifEnabled: (type, value) => {
+    set((s) => {
+      const notifEnabled = { ...s.notifEnabled, [type]: value };
+      patchSettings({ notifJson: JSON.stringify(notifEnabled) });
+      return { notifEnabled };
+    });
+  },
 }));

@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── User ──────────────────────────────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String   // bcrypt hash
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events          CalendarEvent[]
+  rooms           Room[]
+  roomMemberships RoomMember[]
+  sentFriends     FriendRelation[] @relation("Requester")
+  receivedFriends FriendRelation[] @relation("Addressee")
+  notifications   Notification[]
+  categories      Category[]
+  settings        UserSettings?
+}
+
+// ─── CalendarEvent ─────────────────────────────────────────────────────────
+model CalendarEvent {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  dayOfWeek   Int     // 0=월 … 6=일
+  startTime   String  // "HH:MM"
+  endTime     String  // "HH:MM"
+  location    String?
+  categoryId  String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  roomMemberEvents RoomMemberEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Room ──────────────────────────────────────────────────────────────────
+model Room {
+  id           String @id @default(cuid())
+  name         String
+  description  String @default("")
+  color        String // RoomColor 값 (blue, violet, teal …)
+  icon         String // RoomIcon 값 (rocket, people …)
+  heatmapColor String @default("blue")
+  nextSync     String?
+  nextSyncDay  String?
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  members RoomMember[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── RoomMember ────────────────────────────────────────────────────────────
+model RoomMember {
+  id      String @id @default(cuid())
+  colorId String @default("blue")
+
+  roomId String
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  events RoomMemberEvent[]
+
+  @@unique([roomId, userId])
+}
+
+// ─── RoomMemberEvent ───────────────────────────────────────────────────────
+// 특정 룸에 공유된 멤버의 일정
+model RoomMemberEvent {
+  id String @id @default(cuid())
+
+  roomMemberId String
+  roomMember   RoomMember @relation(fields: [roomMemberId], references: [id], onDelete: Cascade)
+
+  eventId String
+  event   CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([roomMemberId, eventId])
+}
+
+// ─── FriendRelation ────────────────────────────────────────────────────────
+model FriendRelation {
+  id        String   @id @default(cuid())
+  status    String   @default("pending") // "pending" | "accepted"
+  createdAt DateTime @default(now())
+
+  requesterId String
+  requester   User   @relation("Requester", fields: [requesterId], references: [id], onDelete: Cascade)
+
+  addresseeId String
+  addressee   User   @relation("Addressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+}
+
+// ─── Notification ──────────────────────────────────────────────────────────
+model Notification {
+  id         String   @id @default(cuid())
+  type       String   // NotificationType 문자열
+  title      String
+  body       String
+  time       DateTime @default(now())
+  read       Boolean  @default(false)
+  actionable Boolean  @default(false)
+  metaJson   String?  // JSON: { roomId?, roomName?, fromName? }
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Category ──────────────────────────────────────────────────────────────
+model Category {
+  id     String @id @default(cuid())
+  label  String
+  color  String // hex (예: "#4F6CF5")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── UserSettings ──────────────────────────────────────────────────────────
+model UserSettings {
+  id           String  @id @default(cuid())
+  startOfWeek  String  @default("mon")
+  showWeekends Boolean @default(true)
+  gridStart    Int     @default(8)
+  gridEnd      Int     @default(22)
+  theme        String  @default("system")
+  language     String  @default("ko")
+  notifJson    String  @default("{}") // Record<NotificationType, boolean>
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

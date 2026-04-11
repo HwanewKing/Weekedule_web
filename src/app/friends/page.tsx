@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useFriendStore, getFriends, getPendingReceived, getPendingSent } from "@/lib/friendStore";
+import { useFriendStore } from "@/lib/friendStore";
 import { useAuthStore } from "@/lib/authStore";
 import { getMemberStyle } from "@/types/room";
 
@@ -12,11 +12,7 @@ function generateFriendInviteLink(userId: string) {
 
 export default function FriendsPage() {
   const { user } = useAuthStore();
-  const { relations, sendRequest, acceptRequest, declineRequest, removeFriend } = useFriendStore();
-
-  const friends        = getFriends(relations, user?.id ?? "");
-  const pendingIn      = getPendingReceived(relations, user?.id ?? "");
-  const pendingOut     = getPendingSent(relations, user?.id ?? "");
+  const { friends, pendingIn, pendingOut, sendRequest, acceptRequest, declineRequest, removeFriend } = useFriendStore();
 
   const [showAddPanel,    setShowAddPanel]    = useState(false);
   const [emailInput,      setEmailInput]      = useState("");
@@ -31,10 +27,7 @@ export default function FriendsPage() {
     if (!emailInput.trim() || !user) return;
     setSending(true);
     setSendResult(null);
-
-    await new Promise((r) => setTimeout(r, 300));
-
-    const result = sendRequest(user.id, user.name, user.email, emailInput.trim());
+    const result = await sendRequest(emailInput.trim());
     setSendResult({ ok: result.success, msg: result.success ? "친구 요청을 보냈어요!" : result.error ?? "오류가 발생했어요" });
     if (result.success) setEmailInput("");
     setSending(false);
@@ -46,12 +39,12 @@ export default function FriendsPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleRemove = (userId: string) => {
-    if (confirmRemoveId === userId) {
-      removeFriend(user!.id, userId);
+  const handleRemove = (relationId: string) => {
+    if (confirmRemoveId === relationId) {
+      removeFriend(relationId);
       setConfirmRemoveId(null);
     } else {
-      setConfirmRemoveId(userId);
+      setConfirmRemoveId(relationId);
     }
   };
 
@@ -101,7 +94,6 @@ export default function FriendsPage() {
               </button>
             </div>
 
-            {/* 이메일로 추가 */}
             <div>
               <label className="label-field">이메일로 찾기</label>
               <div className="flex gap-2">
@@ -122,7 +114,6 @@ export default function FriendsPage() {
                   {sending ? "..." : "요청 보내기"}
                 </button>
               </div>
-
               {sendResult && (
                 <p className={`text-xs mt-2 font-semibold px-3 py-2 rounded-xl border ${
                   sendResult.ok
@@ -134,14 +125,12 @@ export default function FriendsPage() {
               )}
             </div>
 
-            {/* 구분선 */}
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-outline-variant/20" />
               <span className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-wide">또는</span>
               <div className="flex-1 h-px bg-outline-variant/20" />
             </div>
 
-            {/* 링크로 초대 */}
             <div>
               <label className="label-field">링크로 초대</label>
               <div className="flex items-center gap-2">
@@ -177,11 +166,11 @@ export default function FriendsPage() {
                   className={`flex items-center gap-3 px-5 py-3.5 ${i > 0 ? "border-t border-outline-variant/10" : ""}`}
                 >
                   <div className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-xs font-bold text-on-surface-variant shrink-0">
-                    {rel.requesterName.slice(0, 2)}
+                    {rel.from.name.slice(0, 2)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-on-surface">{rel.requesterName}</p>
-                    <p className="text-[11px] text-on-surface-variant">{rel.requesterEmail}</p>
+                    <p className="text-sm font-semibold text-on-surface">{rel.from.name}</p>
+                    <p className="text-[11px] text-on-surface-variant">{rel.from.email}</p>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
                     <button
@@ -216,11 +205,11 @@ export default function FriendsPage() {
                   className={`flex items-center gap-3 px-5 py-3.5 ${i > 0 ? "border-t border-outline-variant/10" : ""}`}
                 >
                   <div className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-xs font-bold text-on-surface-variant shrink-0">
-                    {rel.addresseeName.slice(0, 2)}
+                    {rel.to.name.slice(0, 2)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-on-surface">{rel.addresseeName}</p>
-                    <p className="text-[11px] text-on-surface-variant">{rel.addresseeEmail}</p>
+                    <p className="text-sm font-semibold text-on-surface">{rel.to.name}</p>
+                    <p className="text-[11px] text-on-surface-variant">{rel.to.email}</p>
                   </div>
                   <span className="text-[10px] text-on-surface-variant bg-surface-container px-2.5 py-1 rounded-full shrink-0">
                     대기 중

@@ -21,10 +21,7 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    // 약간의 딜레이 (UX)
-    await new Promise((r) => setTimeout(r, 400));
-
-    const result = login(email, password);
+    const result = await login(email, password);
     if (result.success) {
       router.replace("/");
     } else {

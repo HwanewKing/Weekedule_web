@@ -19,7 +19,10 @@
       "Bash(cmd /c \"git log --oneline -3 2>&1\")",
       "Bash(cmd /c \"git push origin main 2>&1\")",
       "Bash(powershell -Command \"Set-Location 'C:\\\\Users\\\\udown\\\\Desktop\\\\git\\\\Weekedule_web'; git log --oneline -3; git push origin main\")",
-      "Bash(powershell -Command \"Set-Location 'C:\\\\Users\\\\udown\\\\Desktop\\\\git\\\\Weekedule_web'; git log --oneline -5\")"
+      "Bash(powershell -Command \"Set-Location 'C:\\\\Users\\\\udown\\\\Desktop\\\\git\\\\Weekedule_web'; git log --oneline -5\")",
+      "Bash(npx prisma:*)",
+      "Bash(npm run:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

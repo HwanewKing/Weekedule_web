@@ -164,7 +164,7 @@ function NotificationItem({ n, onRead, onDismiss, onAccept, onDecline }: {
 type Filter = "all" | "unread";
 
 export default function NotificationsPage() {
-  const { notifications, markRead, markAllRead, dismiss, acceptAction, declineAction } =
+  const { notifications, markRead, markAllRead, dismiss } =
     useNotificationStore();
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -268,8 +268,8 @@ export default function NotificationsPage() {
                         n={n}
                         onRead={() => markRead(n.id)}
                         onDismiss={() => dismiss(n.id)}
-                        onAccept={() => acceptAction(n.id)}
-                        onDecline={() => declineAction(n.id)}
+                        onAccept={() => markRead(n.id)}
+                        onDecline={() => dismiss(n.id)}
                       />
                     </div>
                   ))}

@@ -22,7 +22,7 @@ export default function TimetablePage() {
     if (editTarget) {
       updateEvent(editTarget.id, data);
     } else {
-      addEvent({ ...data, id: crypto.randomUUID() });
+      addEvent(data);
     }
   };
 
