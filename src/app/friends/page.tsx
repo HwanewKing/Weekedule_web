@@ -67,9 +67,33 @@ function generateFriendInviteLink(userId: string) {
 }
 
 export default function FriendsPage() {
-  const { user } = useAuthStore();
+  const { user, isGuest } = useAuthStore();
   const { language } = useSettingsStore();
   const t = T[language];
+
+  if (isGuest) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
+        <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-2">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-on-surface-variant">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <h3 className="text-lg font-bold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
+          친구 기능은 회원가입 후 이용할 수 있어요
+        </h3>
+        <p className="text-sm text-on-surface-variant max-w-xs">
+          친구를 추가하고 함께 일정을 공유해 보세요.
+        </p>
+        <a
+          href="/signup"
+          className="mt-2 px-6 py-2.5 rounded-full btn-gradient text-sm font-bold text-on-primary"
+        >
+          회원가입하기
+        </a>
+      </div>
+    );
+  }
 
   const { friends, pendingIn, pendingOut, sendRequest, acceptRequest, declineRequest, removeFriend } = useFriendStore();
 

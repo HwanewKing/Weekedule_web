@@ -7,7 +7,7 @@ import { useAuthStore } from "@/lib/authStore";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuthStore();
+  const { login, loginAsGuest } = useAuthStore();
 
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
@@ -28,6 +28,11 @@ export default function LoginPage() {
       setError(result.error ?? "로그인에 실패했어요");
     }
     setLoading(false);
+  };
+
+  const handleGuest = () => {
+    loginAsGuest();
+    router.replace("/");
   };
 
   return (
@@ -95,6 +100,20 @@ export default function LoginPage() {
               {loading ? "로그인 중..." : "로그인"}
             </button>
           </form>
+
+          <div className="flex items-center gap-3 my-4">
+            <div className="flex-1 h-px bg-outline-variant/30" />
+            <span className="text-[11px] text-on-surface-variant/60 font-medium">또는</span>
+            <div className="flex-1 h-px bg-outline-variant/30" />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGuest}
+            className="w-full py-3 rounded-full border border-outline-variant/40 text-sm font-semibold text-on-surface-variant hover:bg-surface-container/60 transition-all active:scale-95"
+          >
+            게스트로 시작
+          </button>
         </div>
 
         <p className="text-center text-sm text-on-surface-variant mt-5">

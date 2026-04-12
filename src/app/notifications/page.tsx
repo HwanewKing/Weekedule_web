@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useNotificationStore, Notification, NotificationType } from "@/lib/notificationStore";
 import { useSettingsStore } from "@/lib/settingsStore";
+import { useAuthStore } from "@/lib/authStore";
 
 interface NotiT {
   title: string; markAllRead: string; unreadCount: (n: number) => string;
@@ -218,7 +219,32 @@ type Filter = "all" | "unread";
 export default function NotificationsPage() {
   const { notifications, markRead, markAllRead, dismiss } = useNotificationStore();
   const { language } = useSettingsStore();
+  const { isGuest } = useAuthStore();
   const t = T[language];
+
+  if (isGuest) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
+        <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-2">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-on-surface-variant">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+        </div>
+        <h3 className="text-lg font-bold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
+          알림 기능은 회원가입 후 이용할 수 있어요
+        </h3>
+        <p className="text-sm text-on-surface-variant max-w-xs">
+          친구 요청, 일정 알림 등을 받아보세요.
+        </p>
+        <a
+          href="/signup"
+          className="mt-2 px-6 py-2.5 rounded-full btn-gradient text-sm font-bold text-on-primary"
+        >
+          회원가입하기
+        </a>
+      </div>
+    );
+  }
 
   const [filter, setFilter] = useState<Filter>("all");
 

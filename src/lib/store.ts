@@ -3,12 +3,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { CalendarEvent } from "@/types/event";
+import { useAuthStore } from "@/lib/authStore";
 
 interface WeekedualeStore {
   events: CalendarEvent[];
   weeklyGoal: string;
 
   fetchEvents: () => Promise<void>;
+  setEvents: (events: CalendarEvent[]) => void;
   addEvent: (event: Omit<CalendarEvent, "id">) => Promise<void>;
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
@@ -26,11 +28,17 @@ function normalizeEvent(e: any): CalendarEvent {
   };
 }
 
+function saveGuestEvents(events: CalendarEvent[]) {
+  localStorage.setItem("weekedule-guest-events", JSON.stringify(events));
+}
+
 export const useWeekedualeStore = create<WeekedualeStore>()(
   persist(
     (set, get) => ({
       events: [],
       weeklyGoal: "",
+
+      setEvents: (events) => set({ events }),
 
       fetchEvents: async () => {
         const res = await fetch("/api/events");
@@ -43,9 +51,18 @@ export const useWeekedualeStore = create<WeekedualeStore>()(
       },
 
       addEvent: async (event) => {
-        // 낙관적 업데이트
+        const isGuest = useAuthStore.getState().isGuest;
         const tempId = crypto.randomUUID();
-        set((s) => ({ events: [...s.events, { ...event, id: tempId } as CalendarEvent] }));
+        const newEvent = { ...event, id: tempId } as CalendarEvent;
+
+        set((s) => ({ events: [...s.events, newEvent] }));
+
+        if (isGuest) {
+          // 게스트: localStorage에만 저장
+          saveGuestEvents(get().events);
+          return;
+        }
+
         try {
           // 프론트 category → API categoryId 로 변환해서 전송
           const res = await fetch("/api/events", {
@@ -68,10 +85,17 @@ export const useWeekedualeStore = create<WeekedualeStore>()(
       },
 
       updateEvent: async (id, updates) => {
+        const isGuest = useAuthStore.getState().isGuest;
         const prev = get().events;
         set((s) => ({
           events: s.events.map((e) => (e.id === id ? { ...e, ...updates } : e)),
         }));
+
+        if (isGuest) {
+          saveGuestEvents(get().events);
+          return;
+        }
+
         try {
           // category → categoryId 변환
           const { category, ...rest } = updates as Partial<CalendarEvent> & { category?: string };
@@ -88,8 +112,15 @@ export const useWeekedualeStore = create<WeekedualeStore>()(
       },
 
       deleteEvent: async (id) => {
+        const isGuest = useAuthStore.getState().isGuest;
         const prev = get().events;
         set((s) => ({ events: s.events.filter((e) => e.id !== id) }));
+
+        if (isGuest) {
+          saveGuestEvents(get().events);
+          return;
+        }
+
         try {
           const res = await fetch(`/api/events/${id}`, { method: "DELETE" });
           if (!res.ok) set({ events: prev });
@@ -99,9 +130,16 @@ export const useWeekedualeStore = create<WeekedualeStore>()(
       },
 
       deleteGroup: async (groupId) => {
-        const targets = get().events.filter((e) => e.groupId === groupId);
+        const isGuest = useAuthStore.getState().isGuest;
         const prev = get().events;
         set((s) => ({ events: s.events.filter((e) => e.groupId !== groupId) }));
+
+        if (isGuest) {
+          saveGuestEvents(get().events);
+          return;
+        }
+
+        const targets = prev.filter((e) => e.groupId === groupId);
         try {
           await Promise.all(
             targets.map((e) => fetch(`/api/events/${e.id}`, { method: "DELETE" }))
