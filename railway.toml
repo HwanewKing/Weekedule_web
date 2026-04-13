@@ -2,7 +2,7 @@
 builder = "dockerfile"
 
 [deploy]
-startCommand = "node_modules/.bin/next start -p ${PORT:-3000}"
+startCommand = "node_modules/.bin/next start"
 healthcheckPath = "/"
 healthcheckTimeout = 120
 restartPolicyType = "on_failure"
