@@ -5,15 +5,15 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/authStore";
 import { useRoomStore } from "@/lib/roomStore";
 import RoomIconEl from "@/components/rooms/RoomIcon";
-import { getRoomColorHex, hexToRgba } from "@/types/room";
+import { getRoomColorHex, hexToRgba, type RoomColor, type RoomIcon } from "@/types/room";
 import Link from "next/link";
 
 interface RoomPreview {
   id: string;
   name: string;
   description: string;
-  color: string;
-  icon: string;
+  color: RoomColor;
+  icon: RoomIcon;
   memberCount: number;
 }
 
@@ -54,7 +54,7 @@ export default function InvitePage() {
     setTimeout(() => router.replace(`/rooms/${data.roomId}`), 1500);
   };
 
-  const hex = room ? getRoomColorHex(room.color as Parameters<typeof getRoomColorHex>[0]) : "#6750a4";
+  const hex = room ? getRoomColorHex(room.color) : "#6750a4";
 
   return (
     <div className="flex-1 flex items-center justify-center p-6 bg-surface">
