@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSettingsStore } from "@/lib/settingsStore";
 
 const T = {
@@ -86,14 +86,15 @@ const T = {
 
 export default function TermsPage() {
   const { language } = useSettingsStore();
+  const router = useRouter();
   const t = T[language];
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto bg-surface">
       <div className="max-w-2xl mx-auto w-full px-6 py-8">
-        <Link href="/settings" className="text-sm text-primary font-semibold hover:underline mb-6 inline-block">
+        <button onClick={() => router.back()} className="text-sm text-primary font-semibold hover:underline mb-6 inline-block">
           {t.back}
-        </Link>
+        </button>
         <h1 className="text-2xl font-extrabold text-on-surface mb-1" style={{ fontFamily: "var(--font-manrope)" }}>
           {t.title}
         </h1>
