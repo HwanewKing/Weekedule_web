@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/lib/authStore";
 import { useSettingsStore } from "@/lib/settingsStore";
@@ -69,6 +69,8 @@ export default function SignupPage() {
   const router = useRouter();
   const { register } = useAuthStore();
   const { setLanguage } = useSettingsStore();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") ?? "/home";
 
   const [lang,     setLang]     = useState<Lang>("ko");
   const [name,     setName]     = useState("");
@@ -99,7 +101,7 @@ export default function SignupPage() {
     if (result.success) {
       // 가입 시 선택한 언어를 settings에도 반영
       setLanguage(lang);
-      router.replace("/home");
+      router.replace(next);
     } else {
       setError(result.error ?? t.errFallback);
     }

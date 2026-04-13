@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/lib/authStore";
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, loginAsGuest } = useAuthStore();
-  const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-  const next = searchParams?.get("next") ?? "/home";
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") ?? "/home";
 
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
