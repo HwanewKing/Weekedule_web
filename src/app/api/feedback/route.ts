@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
         "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Weekedule Feedback <feedback@weekedule.app>",
+        from: "Weekedule Feedback <feedback@weekedule.com>",
         to: [TO_EMAIL],
         subject: `[Weekedule ${typeLabel[type] ?? "의견"}] ${subject || "(제목 없음)"}`,
         html: `
