@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useSettingsStore, Theme, Language } from "@/lib/settingsStore";
 import { useAuthStore } from "@/lib/authStore";
 import { NotificationType } from "@/lib/notificationStore";
@@ -271,7 +272,9 @@ export default function SettingsPage() {
 
   const t = T[language];
 
-  const [activeSection, setActiveSection] = useState<SettingSection>("profile");
+  const searchParams = useSearchParams();
+  const initSection = (searchParams.get("section") ?? "profile") as SettingSection;
+  const [activeSection, setActiveSection] = useState<SettingSection>(initSection);
   const [nameInput,     setNameInput]     = useState(displayName);
   const [nameSaved,     setNameSaved]     = useState(false);
 
