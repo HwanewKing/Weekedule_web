@@ -238,12 +238,20 @@ export default function NotificationsPage() {
         <p className="text-sm text-on-surface-variant max-w-xs">
           친구 요청, 일정 알림 등을 받아보세요.
         </p>
-        <a
-          href="/signup"
-          className="mt-2 px-6 py-2.5 rounded-full btn-gradient text-sm font-bold text-on-primary"
-        >
-          회원가입하기
-        </a>
+        <div className="flex gap-2 mt-2">
+          <a
+            href="/login"
+            className="px-6 py-2.5 rounded-full border border-outline-variant/40 text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-all"
+          >
+            로그인
+          </a>
+          <a
+            href="/signup"
+            className="px-6 py-2.5 rounded-full btn-gradient text-sm font-bold text-on-primary"
+          >
+            회원가입
+          </a>
+        </div>
       </div>
     );
   }

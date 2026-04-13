@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useWeekedualeStore } from "@/lib/store";
 import { useSettingsStore } from "@/lib/settingsStore";
+import { useAuthStore } from "@/lib/authStore";
 import WeekGrid from "@/components/timetable/WeekGrid";
 import BottomWidgets from "@/components/timetable/BottomWidgets";
 import EventModal from "@/components/timetable/EventModal";
@@ -17,6 +19,7 @@ export default function TimetablePage() {
   const { events, weeklyGoal, addEvent, updateEvent, deleteEvent, deleteGroup, setWeeklyGoal } =
     useWeekedualeStore();
   const { language } = useSettingsStore();
+  const { isGuest } = useAuthStore();
   const t = T[language];
 
   const [modalOpen,    setModalOpen]    = useState(false);
@@ -62,7 +65,15 @@ export default function TimetablePage() {
         <h2 className="text-base font-bold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
           {t.nav}
         </h2>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {isGuest && (
+            <Link
+              href="/login"
+              className="px-4 py-2 rounded-full border border-outline-variant/40 text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-all"
+            >
+              로그인
+            </Link>
+          )}
           <button
             onClick={openAdd}
             className="px-5 py-2 rounded-full btn-gradient text-sm font-bold text-on-primary flex items-center gap-1.5 active:scale-95 transition-all"

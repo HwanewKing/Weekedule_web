@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRoomStore } from "@/lib/roomStore";
 import { useSettingsStore } from "@/lib/settingsStore";
 import { useAuthStore } from "@/lib/authStore";
@@ -39,15 +40,25 @@ export default function RoomsPage() {
         <h2 className="text-base font-bold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
           Collaboration Spaces
         </h2>
-        <button
-          onClick={handleCreateClick}
-          className="px-5 py-2 rounded-full btn-gradient text-sm font-bold text-on-primary flex items-center gap-1.5 active:scale-95 transition-all"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Create Room
-        </button>
+        <div className="flex items-center gap-2">
+          {isGuest && (
+            <Link
+              href="/login"
+              className="px-4 py-2 rounded-full border border-outline-variant/40 text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-all"
+            >
+              로그인
+            </Link>
+          )}
+          <button
+            onClick={handleCreateClick}
+            className="px-5 py-2 rounded-full btn-gradient text-sm font-bold text-on-primary flex items-center gap-1.5 active:scale-95 transition-all"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Create Room
+          </button>
+        </div>
       </header>
 
       {/* Main */}
