@@ -69,7 +69,15 @@ function generateFriendInviteLink(userId: string) {
 export default function FriendsPage() {
   const { user, isGuest } = useAuthStore();
   const { language } = useSettingsStore();
+  const { friends, pendingIn, pendingOut, sendRequest, acceptRequest, declineRequest, removeFriend } = useFriendStore();
   const t = T[language];
+
+  const [showAddPanel,    setShowAddPanel]    = useState(false);
+  const [emailInput,      setEmailInput]      = useState("");
+  const [sendResult,      setSendResult]      = useState<{ ok: boolean; msg: string } | null>(null);
+  const [sending,         setSending]         = useState(false);
+  const [copied,          setCopied]          = useState(false);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
 
   if (isGuest) {
     return (
@@ -94,15 +102,6 @@ export default function FriendsPage() {
       </div>
     );
   }
-
-  const { friends, pendingIn, pendingOut, sendRequest, acceptRequest, declineRequest, removeFriend } = useFriendStore();
-
-  const [showAddPanel,    setShowAddPanel]    = useState(false);
-  const [emailInput,      setEmailInput]      = useState("");
-  const [sendResult,      setSendResult]      = useState<{ ok: boolean; msg: string } | null>(null);
-  const [sending,         setSending]         = useState(false);
-  const [copied,          setCopied]          = useState(false);
-  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
 
   const inviteLink = generateFriendInviteLink(user?.id ?? "");
 

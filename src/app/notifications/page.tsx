@@ -222,6 +222,8 @@ export default function NotificationsPage() {
   const { isGuest } = useAuthStore();
   const t = T[language];
 
+  const [filter, setFilter] = useState<Filter>("all");
+
   if (isGuest) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
@@ -245,8 +247,6 @@ export default function NotificationsPage() {
       </div>
     );
   }
-
-  const [filter, setFilter] = useState<Filter>("all");
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const filtered = filter === "unread" ? notifications.filter((n) => !n.read) : notifications;

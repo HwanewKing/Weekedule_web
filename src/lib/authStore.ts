@@ -112,9 +112,13 @@ export const useAuthStore = create<AuthStore>()(
           set({ _hydrated: true });
           return;
         }
-        const res = await fetch("/api/auth/me");
-        const data = await res.json();
-        set({ user: data.user ?? null, _hydrated: true });
+        try {
+          const res = await fetch("/api/auth/me");
+          const data = await res.json();
+          set({ user: data.user ?? null, _hydrated: true });
+        } catch {
+          set({ user: null, _hydrated: true });
+        }
       },
 
       updateName: async (name) => {
