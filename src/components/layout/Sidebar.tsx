@@ -138,6 +138,24 @@ export default function Sidebar() {
           })}
         </nav>
 
+        {/* AdSense 광고 영역 */}
+        <div className="px-3 py-3">
+          <div className="w-full rounded-xl overflow-hidden bg-surface-container flex items-center justify-center" style={{ minHeight: 200 }}>
+            {/* TODO: AdSense 승인 후 아래 주석 해제하고 ca-pub-XXX, data-ad-slot 값 채우기 */}
+            {/*
+            <ins
+              className="adsbygoogle"
+              style={{ display: "block", width: "100%", minHeight: 200 }}
+              data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+              data-ad-slot="XXXXXXXXXX"
+              data-ad-format="vertical"
+              data-full-width-responsive="false"
+            />
+            */}
+            <p className="text-[10px] text-on-surface-variant/40 select-none">AD</p>
+          </div>
+        </div>
+
         {/* User */}
         <div className="px-3 pb-5 pt-3 flex flex-col gap-1">
           <div className="flex items-center gap-3 px-3 py-2.5 bg-surface-container rounded-xl">
