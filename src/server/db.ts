@@ -7,8 +7,7 @@ function createPrismaClient(): PrismaClient {
   if (!url) {
     throw new Error("DATABASE_URL 환경변수가 설정되지 않았습니다");
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new PrismaClient({ log: ["error"], datasourceUrl: url } as any);
+  return new PrismaClient({ log: ["query", "error", "warn"] });
 }
 
 // 빌드 타임에 인스턴스를 생성하지 않도록 lazy proxy 사용
