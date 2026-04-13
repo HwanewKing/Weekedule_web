@@ -40,7 +40,7 @@ export default function InvitePage() {
   }, [token]);
 
   const handleJoin = async () => {
-    if (!user) {
+    if (!user || isGuest) {
       router.push(`/login?next=/invite/${token}`);
       return;
     }
@@ -110,7 +110,7 @@ export default function InvitePage() {
                 <p className="text-xs text-on-surface-variant mt-2">{room.memberCount}명 참여 중</p>
               </div>
 
-              {!user && !isGuest ? (
+              {(!user || isGuest) ? (
                 <div className="flex flex-col gap-2">
                   <p className="text-xs text-center text-on-surface-variant">참여하려면 로그인이 필요해요</p>
                   <Link
