@@ -54,7 +54,7 @@ export default function InvitePage() {
     setTimeout(() => router.replace(`/rooms/${data.roomId}`), 1500);
   };
 
-  const hex = room ? getRoomColorHex(room.color) : "#6750a4";
+  const hex = room ? getRoomColorHex(room.color as Parameters<typeof getRoomColorHex>[0]) : "#6750a4";
 
   return (
     <div className="flex-1 flex items-center justify-center p-6 bg-surface">
