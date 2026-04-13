@@ -23,7 +23,7 @@ export default function LoginPage() {
 
     const result = await login(email, password);
     if (result.success) {
-      router.replace("/");
+      router.replace("/home");
     } else {
       setError(result.error ?? "로그인에 실패했어요");
     }
@@ -32,7 +32,7 @@ export default function LoginPage() {
 
   const handleGuest = () => {
     loginAsGuest();
-    router.replace("/");
+    router.replace("/home");
   };
 
   return (

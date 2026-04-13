@@ -99,7 +99,7 @@ export default function SignupPage() {
     if (result.success) {
       // 가입 시 선택한 언어를 settings에도 반영
       setLanguage(lang);
-      router.replace("/");
+      router.replace("/home");
     } else {
       setError(result.error ?? t.errFallback);
     }

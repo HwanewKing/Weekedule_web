@@ -6,7 +6,7 @@ import { useAuthStore } from "@/lib/authStore";
 import Sidebar from "@/components/layout/Sidebar";
 import DataProvider from "./DataProvider";
 
-const PUBLIC_PATHS = ["/login", "/signup"];
+const PUBLIC_PATHS = ["/", "/login", "/signup"];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router    = useRouter();
@@ -23,18 +23,21 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!_hydrated) return;
-    if (!isLoggedIn && !isPublic) router.replace("/login");
-    if (isLoggedIn && isPublic) router.replace("/");
-  }, [isLoggedIn, isPublic, _hydrated, router]);
+    // 랜딩 페이지(/)에서 로그인 상태면 /home으로
+    if (isLoggedIn && pathname === "/") { router.replace("/home"); return; }
+    if (!isLoggedIn && !isPublic) router.replace("/");
+    if (isLoggedIn && isPublic && pathname !== "/") router.replace("/home");
+  }, [isLoggedIn, isPublic, pathname, _hydrated, router]);
 
   // 세션 확인 전 (hydration 대기)
   if (!_hydrated) return null;
 
   // 리디렉트 중에는 렌더링 안 함
+  if (isLoggedIn && pathname === "/") return null;
   if (!isLoggedIn && !isPublic) return null;
-  if (isLoggedIn && isPublic) return null;
+  if (isLoggedIn && isPublic && pathname !== "/") return null;
 
-  // 로그인/회원가입 페이지: 사이드바 없이 전체 화면
+  // 공개 페이지 (랜딩/로그인/회원가입): 사이드바 없이 전체 화면
   if (isPublic) {
     return <div className="flex-1 flex flex-col overflow-hidden min-w-0">{children}</div>;
   }

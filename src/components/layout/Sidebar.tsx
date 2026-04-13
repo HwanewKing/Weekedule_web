@@ -8,15 +8,15 @@ import { useSettingsStore } from "@/lib/settingsStore";
 import { useAuthStore } from "@/lib/authStore";
 
 const NAV_LABELS = {
-  ko: { "/": "시간표", "/rooms": "Rooms", "/friends": "친구", "/notifications": "알림", "/settings": "설정", "/feedback": "피드백" },
-  en: { "/": "Timetable", "/rooms": "Rooms", "/friends": "Friends", "/notifications": "Notifications", "/settings": "Settings", "/feedback": "Feedback" },
+  ko: { "/home": "시간표", "/rooms": "Rooms", "/friends": "친구", "/notifications": "알림", "/settings": "설정", "/feedback": "피드백" },
+  en: { "/home": "Timetable", "/rooms": "Rooms", "/friends": "Friends", "/notifications": "Notifications", "/settings": "Settings", "/feedback": "Feedback" },
 } as const;
 
 // 모바일 하단 바에는 5개만 표시 (피드백 제외)
-const MOBILE_NAV_HREFS = ["/", "/rooms", "/friends", "/notifications", "/settings"] as const;
+const MOBILE_NAV_HREFS = ["/home", "/rooms", "/friends", "/notifications", "/settings"] as const;
 
 const NAV_ICONS: Record<string, React.ReactNode> = {
-  "/": (
+  "/home": (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
       <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
@@ -56,7 +56,7 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
-const NAV_HREFS = ["/", "/rooms", "/friends", "/notifications", "/settings", "/feedback"] as const;
+const NAV_HREFS = ["/home", "/rooms", "/friends", "/notifications", "/settings", "/feedback"] as const;
 type NavHref = typeof NAV_HREFS[number];
 type MobileNavHref = typeof MOBILE_NAV_HREFS[number];
 
