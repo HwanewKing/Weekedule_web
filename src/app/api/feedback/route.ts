@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/server/middleware/requireAuth";
 import { findUserById } from "@/server/services/userService";
 
-export const runtime = "edge";
+
 
 const TO_EMAIL = "udown0109@naver.com";
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionFromCookies } from "@/server/auth/session";
 
-export const runtime = "edge";
+
 
 export async function GET() {
   const session = await getSessionFromCookies();

@@ -3,7 +3,7 @@ import { findUserByEmail } from "@/server/services/userService";
 import { verifyPassword } from "@/server/auth/password";
 import { setSessionCookie } from "@/server/auth/session";
 
-export const runtime = "edge";
+
 
 export async function POST(req: NextRequest) {
   try {

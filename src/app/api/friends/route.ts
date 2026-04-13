@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/server/middleware/requireAuth";
 import { listFriends, sendFriendRequest } from "@/server/services/friendService";
 
-export const runtime = "edge";
+
 
 export async function GET() {
   try {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/server/middleware/requireAuth";
 import { markAllRead } from "@/server/services/notificationService";
 
-export const runtime = "edge";
+
 
 export async function POST() {
   try {

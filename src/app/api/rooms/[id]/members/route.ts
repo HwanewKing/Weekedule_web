@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/server/middleware/requireAuth";
 import { addMember } from "@/server/services/roomService";
 
-export const runtime = "edge";
+
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/server/middleware/requireAuth";
 import { updateCategory, deleteCategory } from "@/server/services/categoryService";
 
-export const runtime = "edge";
+
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

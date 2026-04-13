@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/server/middleware/requireAuth";
 import { markRead, deleteNotification } from "@/server/services/notificationService";
 
-export const runtime = "edge";
+
 
 export async function PATCH(_req: unknown, { params }: { params: Promise<{ id: string }> }) {
   try {

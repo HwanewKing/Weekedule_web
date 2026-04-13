@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/server/middleware/requireAuth";
 import { getSettings, updateSettings } from "@/server/services/settingsService";
 
-export const runtime = "edge";
+
 
 export async function GET() {
   try {
