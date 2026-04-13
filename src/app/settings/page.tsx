@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useSettingsStore, Theme, Language } from "@/lib/settingsStore";
 import { useAuthStore } from "@/lib/authStore";
 import { NotificationType } from "@/lib/notificationStore";
@@ -583,14 +584,18 @@ export default function SettingsPage() {
                 </Section>
 
                 <Section title={t.about.legalTitle}>
-                  <Row label={t.about.tos}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-on-surface-variant"><polyline points="9 18 15 12 9 6" /></svg>
-                  </Row>
-                  <Row label={t.about.privacy}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-on-surface-variant"><polyline points="9 18 15 12 9 6" /></svg>
-                  </Row>
+                  <Link href="/terms" className="block hover:bg-surface-container transition-colors rounded-b-none">
+                    <Row label={t.about.tos}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-on-surface-variant"><polyline points="9 18 15 12 9 6" /></svg>
+                    </Row>
+                  </Link>
+                  <Link href="/privacy" className="block hover:bg-surface-container transition-colors">
+                    <Row label={t.about.privacy}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-on-surface-variant"><polyline points="9 18 15 12 9 6" /></svg>
+                    </Row>
+                  </Link>
                   <Row label={t.about.oss}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-on-surface-variant"><polyline points="9 18 15 12 9 6" /></svg>
+                    <span className="text-xs text-on-surface-variant">Next.js, Prisma, Tailwind CSS, Zustand, jose</span>
                   </Row>
                 </Section>
               </>

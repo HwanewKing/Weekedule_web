@@ -6,7 +6,7 @@ import { useAuthStore } from "@/lib/authStore";
 import Sidebar from "@/components/layout/Sidebar";
 import DataProvider from "./DataProvider";
 
-const PUBLIC_PATHS = ["/", "/login", "/signup"];
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/privacy", "/terms"];
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.includes(pathname) || pathname.startsWith("/invite/");
 }
