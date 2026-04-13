@@ -13,16 +13,12 @@ interface Props {
   onClose: () => void;
 }
 
-function generateInviteLink(roomId: string) {
-  const token = btoa(roomId + ":invite:" + Date.now()).replace(/=/g, "").slice(0, 12);
-  return `weekedule.app/invite/${roomId}?token=${token}`;
-}
-
 export default function InviteModal({ roomId, onClose }: Props) {
   const [tab, setTab] = useState<InviteTab>("friend");
   const [copied, setCopied] = useState(false);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
-  const [inviteLink] = useState(() => generateInviteLink(roomId));
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [linkLoading, setLinkLoading] = useState(false);
 
   const { user } = useAuthStore();
   const { friends } = useFriendStore();
@@ -31,7 +27,31 @@ export default function InviteModal({ roomId, onClose }: Props) {
   const room = rooms.find((r) => r.id === roomId);
   const existingMemberUserIds = new Set(room?.members.map((m) => m.id) ?? []);
 
+  const generateLink = async () => {
+    if (inviteLink) return;
+    setLinkLoading(true);
+    try {
+      const res = await fetch("/api/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId }),
+      });
+      const data = await res.json();
+      if (data.token) {
+        setInviteLink(`${window.location.origin}/invite/${data.token}`);
+      }
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  const handleTabChange = (t: InviteTab) => {
+    setTab(t);
+    if (t === "link") generateLink();
+  };
+
   const handleCopy = async () => {
+    if (!inviteLink) return;
     try { await navigator.clipboard.writeText(inviteLink); } catch { /* fallback */ }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -76,7 +96,7 @@ export default function InviteModal({ roomId, onClose }: Props) {
           {([["friend", "친구 초대"], ["link", "링크로 초대"]] as [InviteTab, string][]).map(([t, label]) => (
             <button
               key={t}
-              onClick={() => setTab(t)}
+              onClick={() => handleTabChange(t)}
               className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
                 tab === t ? "bg-primary text-on-primary" : "text-on-surface-variant hover:bg-surface-container"
               }`}
@@ -145,20 +165,31 @@ export default function InviteModal({ roomId, onClose }: Props) {
           {tab === "link" && (
             <div className="flex flex-col gap-3">
               <div className="bg-surface-container rounded-2xl p-4">
-                <p className="text-xs text-on-surface-variant mb-2 font-medium">초대 링크</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 text-xs text-on-surface bg-surface-container-high rounded-xl px-3 py-2 font-mono truncate">
-                    {inviteLink}
-                  </code>
-                  <button
-                    onClick={handleCopy}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                      copied ? "bg-[#dcfce7] text-[#16a34a]" : "btn-gradient text-on-primary"
-                    }`}
-                  >
-                    {copied ? "복사됨 ✓" : "복사"}
+                <p className="text-xs text-on-surface-variant mb-2 font-medium">초대 링크 (7일 유효)</p>
+                {linkLoading ? (
+                  <div className="flex items-center gap-2 py-2">
+                    <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                    <span className="text-xs text-on-surface-variant">링크 생성 중...</span>
+                  </div>
+                ) : inviteLink ? (
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-xs text-on-surface bg-surface-container-high rounded-xl px-3 py-2 font-mono truncate">
+                      {inviteLink}
+                    </code>
+                    <button
+                      onClick={handleCopy}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                        copied ? "bg-[#dcfce7] text-[#16a34a]" : "btn-gradient text-on-primary"
+                      }`}
+                    >
+                      {copied ? "복사됨 ✓" : "복사"}
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={generateLink} className="text-xs text-primary font-semibold hover:underline">
+                    링크 생성하기
                   </button>
-                </div>
+                )}
               </div>
               <p className="text-[11px] text-on-surface-variant text-center">
                 링크를 통해 참여한 사람은 이 룸에 자동으로 추가돼요

@@ -8,6 +8,8 @@ import { useAuthStore } from "@/lib/authStore";
 export default function LoginPage() {
   const router = useRouter();
   const { login, loginAsGuest } = useAuthStore();
+  const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const next = searchParams?.get("next") ?? "/home";
 
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
@@ -23,7 +25,7 @@ export default function LoginPage() {
 
     const result = await login(email, password);
     if (result.success) {
-      router.replace("/home");
+      router.replace(next);
     } else {
       setError(result.error ?? "로그인에 실패했어요");
     }

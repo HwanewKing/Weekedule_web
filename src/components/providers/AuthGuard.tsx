@@ -7,13 +7,16 @@ import Sidebar from "@/components/layout/Sidebar";
 import DataProvider from "./DataProvider";
 
 const PUBLIC_PATHS = ["/", "/login", "/signup"];
+function isPublicPath(pathname: string) {
+  return PUBLIC_PATHS.includes(pathname) || pathname.startsWith("/invite/");
+}
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router    = useRouter();
   const pathname  = usePathname();
   const { user, isGuest, _hydrated, fetchMe } = useAuthStore();
 
-  const isPublic   = PUBLIC_PATHS.includes(pathname);
+  const isPublic   = isPublicPath(pathname);
   const isLoggedIn = !!user || isGuest;
 
   // 앱 시작 시 서버 세션 확인
@@ -26,7 +29,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     // 랜딩 페이지(/)에서 로그인 상태면 /home으로
     if (isLoggedIn && pathname === "/") { router.replace("/home"); return; }
     if (!isLoggedIn && !isPublic) router.replace("/");
-    if (isLoggedIn && isPublic && pathname !== "/") router.replace("/home");
+    // invite 페이지는 로그인 상태여도 리다이렉트 안 함
+    if (isLoggedIn && isPublic && pathname !== "/" && !pathname.startsWith("/invite/")) router.replace("/home");
   }, [isLoggedIn, isPublic, pathname, _hydrated, router]);
 
   // 세션 확인 전 (hydration 대기)
@@ -35,9 +39,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // 리디렉트 중에는 렌더링 안 함
   if (isLoggedIn && pathname === "/") return null;
   if (!isLoggedIn && !isPublic) return null;
-  if (isLoggedIn && isPublic && pathname !== "/") return null;
+  if (isLoggedIn && isPublic && pathname !== "/" && !pathname.startsWith("/invite/")) return null;
 
-  // 공개 페이지 (랜딩/로그인/회원가입): 사이드바 없이 전체 화면
+  // 공개 페이지 (랜딩/로그인/회원가입/초대): 사이드바 없이 전체 화면
   if (isPublic) {
     return <div className="flex-1 flex flex-col overflow-hidden min-w-0">{children}</div>;
   }
