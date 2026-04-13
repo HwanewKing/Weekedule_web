@@ -42,7 +42,10 @@ export const useWeekedualeStore = create<WeekedualeStore>()(
 
       fetchEvents: async () => {
         const res = await fetch("/api/events");
-        if (!res.ok) return;
+        if (!res.ok) {
+          console.error("[fetchEvents] failed:", res.status, await res.text().catch(() => ""));
+          return;
+        }
         const data = await res.json();
         // DB는 categoryId 필드로 반환 → 프론트 CalendarEvent의 category로 변환
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
