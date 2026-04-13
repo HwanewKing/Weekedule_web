@@ -24,6 +24,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isGuest, _hydrated, fetchMe } = useAuthStore();
 
   const isLoggedIn = !!user || isGuest;
+  const isRealUser = !!user && !isGuest; // 게스트 제외한 실제 로그인 유저
 
   // 앱 시작 시 서버 세션 확인
   useEffect(() => {
@@ -32,10 +33,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!_hydrated) return;
-    // 랜딩(/)에서 로그인 상태면 /home으로
-    if (isLoggedIn && pathname === "/") { router.replace("/home"); return; }
-    // 로그인 전용 공개 페이지(login/signup)에서 로그인 상태면 /home으로
-    if (isLoggedIn && isAuthOnlyPublic(pathname)) { router.replace("/home"); return; }
+    // 랜딩(/)에서 실제 로그인 상태면 /home으로
+    if (isRealUser && pathname === "/") { router.replace("/home"); return; }
+    // 로그인 전용 공개 페이지(login/signup)에서 실제 로그인 상태면 /home으로 (게스트는 허용)
+    if (isRealUser && isAuthOnlyPublic(pathname)) { router.replace("/home"); return; }
     // 인증 필요 페이지에서 비로그인이면 /로
     if (!isLoggedIn && !isAlwaysPublic(pathname) && !isAuthOnlyPublic(pathname)) router.replace("/");
   }, [isLoggedIn, pathname, _hydrated, router]);
@@ -43,8 +44,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   if (!_hydrated) return null;
 
   // 리디렉트 대기 중
-  if (isLoggedIn && pathname === "/") return null;
-  if (isLoggedIn && isAuthOnlyPublic(pathname)) return null;
+  if (isRealUser && pathname === "/") return null;
+  if (isRealUser && isAuthOnlyPublic(pathname)) return null;
   if (!isLoggedIn && !isAlwaysPublic(pathname) && !isAuthOnlyPublic(pathname)) return null;
 
   // 로그인 전용 공개 페이지 (login/signup): 사이드바 없음
