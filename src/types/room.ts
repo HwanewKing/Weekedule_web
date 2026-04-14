@@ -93,13 +93,12 @@ export function getMemberStyle(colorId: string): { backgroundColor: string; colo
 
 /** heatmapColorId + ratio → inline style 객체 */
 export function getHeatStyle(ratio: number, heatmapColorId: string): { backgroundColor?: string } {
-  if (ratio === 0) return {};
   const opt = HEATMAP_COLOR_OPTIONS.find((o) => o.id === heatmapColorId) ?? HEATMAP_COLOR_OPTIONS[0];
   const hex = opt.hex;
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
-  const alpha = ratio <= 0.25 ? 0.15 : ratio <= 0.5 ? 0.35 : ratio <= 0.75 ? 0.6 : 0.85;
+  const alpha = ratio <= 0.25 ? 0.85 : ratio <= 0.5 ? 0.6 : ratio <= 0.75 ? 0.35 : 0.15;
   return { backgroundColor: `rgba(${r},${g},${b},${alpha})` };
 }
 

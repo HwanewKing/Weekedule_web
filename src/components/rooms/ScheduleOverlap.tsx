@@ -260,7 +260,7 @@ export default function ScheduleOverlap({
               <div
                 key={index}
                 className="h-4 flex-1 rounded-md bg-surface-container"
-                style={ratio > 0 ? getHeatStyle(ratio, heatmapColor) : {}}
+                style={getHeatStyle(ratio, heatmapColor)}
               />
             ))}
             <span className="w-7 text-right text-[9px] text-on-surface-variant">{t.busy}</span>
@@ -316,7 +316,6 @@ export default function ScheduleOverlap({
                   const isSelected = selectedKeys.has(key);
                   const isConfirmed = confirmedKeySet.has(key);
                   const isCancelling = cancellingKeys.has(key);
-                  const isWeekend = dayIdx >= 5;
 
                   return (
                     <button
@@ -324,7 +323,7 @@ export default function ScheduleOverlap({
                       onClick={() => handleSlotClick(key, isConfirmed)}
                       onMouseEnter={(event) => handleMouseEnter(event, dayIdx, hour)}
                       onMouseLeave={handleMouseLeave}
-                      style={ratio > 0 ? getHeatStyle(ratio, heatmapColor) : undefined}
+                      style={getHeatStyle(ratio, heatmapColor)}
                       className={[
                         "relative h-10 rounded-xl transition-all duration-150",
                         isSelected
@@ -334,7 +333,6 @@ export default function ScheduleOverlap({
                             : isConfirmed
                               ? "ring-[3px] ring-green-500 hover:z-10"
                               : "hover:z-10 hover:scale-[1.06]",
-                        ratio === 0 ? (isWeekend ? "bg-surface-dim/20" : "bg-surface-container") : "",
                       ].join(" ")}
                     >
                       {isCancelling ? (
