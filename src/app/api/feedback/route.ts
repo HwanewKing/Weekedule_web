@@ -29,12 +29,12 @@ export async function POST(req: NextRequest) {
         "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Weekedule Feedback <feedback@weekedule.com>",
+        from: "Weekedule Contact <feedback@weekedule.com>",
         to: [TO_EMAIL],
         subject: `[Weekedule ${typeLabel[type] ?? "의견"}] ${subject || "(제목 없음)"}`,
         html: `
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-            <h2 style="color:#2a4dd7;margin-bottom:4px;">Weekedule 피드백</h2>
+            <h2 style="color:#2a4dd7;margin-bottom:4px;">Weekedule 문의하기</h2>
             <p style="color:#888;font-size:13px;margin-top:0;">${new Date().toLocaleString("ko-KR")}</p>
             <hr style="border:none;border-top:1px solid #eee;margin:16px 0;" />
             <table style="width:100%;font-size:14px;border-collapse:collapse;">

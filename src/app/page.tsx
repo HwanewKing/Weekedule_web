@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import GuestStartButton from "@/components/marketing/GuestStartButton";
 import { SiteFooter, SiteHeader } from "@/components/marketing/SiteChrome";
 import { absoluteUrl } from "@/lib/site";
 import { featuredGuideSlugs, guideArticles } from "@/lib/siteContent";
@@ -83,6 +84,9 @@ export default function HomePage() {
                 >
                   무료로 시작
                 </Link>
+                <GuestStartButton
+                  className="inline-flex rounded-full border border-slate-300 px-6 py-3 text-sm font-bold text-slate-900 transition-colors hover:border-slate-400 hover:bg-white/70"
+                />
                 <Link
                   href="/guides"
                   className="inline-flex rounded-full border border-slate-300 px-6 py-3 text-sm font-bold text-slate-900"
@@ -139,7 +143,8 @@ export default function HomePage() {
                     </p>
                     <p className="mt-2 text-sm leading-7 text-slate-600">
                       소개 페이지, 정책 페이지, 가이드 허브, 상세 글, 사이트맵,
-                      robots 파일까지 검색엔진 친화적으로 구성했습니다.
+                      robots 파일과 게스트 체험 동선까지 자연스럽게
+                      구성했습니다.
                     </p>
                   </div>
                 </div>
@@ -237,6 +242,7 @@ export default function HomePage() {
             </h2>
             <div className="mt-6 space-y-4 text-sm leading-7 text-slate-600">
               <p>공개 홈, 소개, 문의, 정책, 가이드 허브, 상세 콘텐츠 제공</p>
+              <p>회원가입 전에도 게스트 모드로 핵심 화면을 빠르게 체험 가능</p>
               <p>검색엔진을 위한 메타데이터, robots, sitemap, canonical 설정</p>
               <p>광고 스크립트는 기본 비활성화 후 승인 뒤 환경변수로만 활성화</p>
               <p>로그인 없이 접근 가능한 의미 있는 정보 페이지를 충분히 확보</p>

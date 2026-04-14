@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 const contactCards = [
   {
     title: "서비스 사용 문의",
-    body: "로그인 가능한 사용자라면 앱 내부의 Feedback 메뉴를 통해 오류, 제안, 사용 문의를 보낼 수 있습니다.",
+    body: "로그인 가능한 사용자라면 앱 내부의 문의하기 메뉴를 통해 오류, 제안, 사용 문의를 보낼 수 있습니다.",
   },
   {
     title: "콘텐츠 관련 문의",
@@ -44,7 +44,7 @@ export default function ContactPage() {
           </h1>
           <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-600">
             Weekedule은 사용자 경험과 콘텐츠 신뢰를 해치지 않는 범위에서 문의를
-            받습니다. 현재 가장 빠른 사용자 문의 채널은 서비스 내부 Feedback
+            받습니다. 현재 가장 빠른 사용자 문의 채널은 서비스 내부 문의하기
             메뉴입니다.
           </p>
         </section>
@@ -101,7 +101,8 @@ export default function ContactPage() {
             </h2>
             <p className="mt-4 text-sm leading-7 text-slate-400">
               Weekedule을 직접 사용해 보고 싶다면 계정을 만든 뒤 일정, 공유
-              링크, 피드백 기능을 확인해 보세요.
+              링크, 문의하기 기능을 확인해 보세요. 회원가입 전에 게스트 모드로
+              먼저 체험해 볼 수도 있습니다.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link

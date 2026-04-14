@@ -15,7 +15,7 @@ const NAV_LABELS = {
     "/friends": "친구",
     "/notifications": "알림",
     "/settings": "설정",
-    "/feedback": "피드백",
+    "/feedback": "문의하기",
   },
   en: {
     "/home": "Timetable",
@@ -23,7 +23,7 @@ const NAV_LABELS = {
     "/friends": "Friends",
     "/notifications": "Notifications",
     "/settings": "Settings",
-    "/feedback": "Feedback",
+    "/feedback": "Contact",
   },
 } as const;
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import GuestStartButton from "./GuestStartButton";
 
 const primaryLinks = [
   { href: "/guides", label: "가이드" },
@@ -52,6 +53,9 @@ export function SiteHeader() {
           >
             로그인
           </Link>
+          <GuestStartButton
+            className="hidden rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-slate-400 hover:text-slate-950 lg:inline-flex"
+          />
           <Link
             href="/signup"
             className="inline-flex rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
