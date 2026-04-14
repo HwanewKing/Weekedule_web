@@ -477,11 +477,11 @@ export default function FriendsPage() {
             <div className="overflow-hidden rounded-3xl border border-outline-variant/10 bg-surface-container-lowest">
               {friends.map((friend, index) => {
                 const memberStyle = getMemberStyle(friend.colorId);
-                const isConfirm = confirmRemoveId === friend.userId;
+                const isConfirm = confirmRemoveId === friend.relationId;
 
                 return (
                   <div
-                    key={friend.userId}
+                    key={friend.relationId}
                     className={`group flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-surface-container-low ${
                       index > 0 ? "border-t border-outline-variant/10" : ""
                     }`}
@@ -497,7 +497,7 @@ export default function FriendsPage() {
                       <p className="text-[11px] text-on-surface-variant">{friend.email}</p>
                     </div>
                     <button
-                      onClick={() => handleRemove(friend.userId)}
+                      onClick={() => handleRemove(friend.relationId)}
                       onBlur={() => setTimeout(() => setConfirmRemoveId(null), 200)}
                       className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold transition-all ${
                         isConfirm

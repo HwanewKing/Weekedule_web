@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { MEMBER_COLOR_OPTIONS, colorIdxToId } from "@/types/room";
 
 export interface Friend {
+  relationId: string;
   userId: string;
   name: string;
   email: string;
@@ -44,7 +45,11 @@ export const useFriendStore = create<FriendStore>()((set, get) => ({
     const data = await res.json();
 
     const friends: Friend[] = (data.friends ?? []).map(
-      (f: { friend: { id: string; name: string; email: string } }, idx: number) => ({
+      (
+        f: { id: string; friend: { id: string; name: string; email: string } },
+        idx: number
+      ) => ({
+        relationId: f.id,
         userId: f.friend.id,
         name: f.friend.name,
         email: f.friend.email,
@@ -92,7 +97,9 @@ export const useFriendStore = create<FriendStore>()((set, get) => ({
 
   removeFriend: async (relationId) => {
     const prev = { friends: get().friends };
-    set((s) => ({ friends: s.friends.filter((f) => f.userId !== relationId) }));
+    set((s) => ({
+      friends: s.friends.filter((friend) => friend.relationId !== relationId),
+    }));
     try {
       const res = await fetch(`/api/friends/${relationId}`, { method: "DELETE" });
       if (!res.ok) set(prev);
