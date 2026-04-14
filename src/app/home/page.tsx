@@ -1,36 +1,59 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { useWeekedualeStore } from "@/lib/store";
-import { useSettingsStore } from "@/lib/settingsStore";
-import { useAuthStore } from "@/lib/authStore";
-import WeekGrid from "@/components/timetable/WeekGrid";
+import { useState } from "react";
 import BottomWidgets from "@/components/timetable/BottomWidgets";
 import EventModal from "@/components/timetable/EventModal";
-import { CalendarEvent } from "@/types/event";
+import WeekGrid from "@/components/timetable/WeekGrid";
+import { useAuthStore } from "@/lib/authStore";
+import { useSettingsStore } from "@/lib/settingsStore";
+import { useWeekedualeStore } from "@/lib/store";
+import type { CalendarEvent } from "@/types/event";
 
 const T = {
-  ko: { nav: "Weekly Timetable", addEvent: "Add Event", title: "이번 주 시간표", subtitle: "일정을 클릭하면 수정하거나 삭제할 수 있어요" },
-  en: { nav: "Weekly Timetable", addEvent: "Add Event", title: "This Week", subtitle: "Click an event to edit or delete it" },
+  ko: {
+    nav: "주간 시간표",
+    login: "로그인",
+    addEvent: "일정 추가",
+    title: "이번 주 시간표",
+    subtitle: "일정을 클릭하면 수정하거나 삭제할 수 있어요.",
+  },
+  en: {
+    nav: "Weekly Timetable",
+    login: "Log in",
+    addEvent: "Add Event",
+    title: "This Week",
+    subtitle: "Click an event to edit or delete it.",
+  },
 } as const;
 
 export default function TimetablePage() {
-  const { events, weeklyGoal, addEvent, updateEvent, deleteEvent, deleteGroup, setWeeklyGoal } =
-    useWeekedualeStore();
+  const {
+    events,
+    weeklyGoal,
+    addEvent,
+    updateEvent,
+    deleteEvent,
+    deleteGroup,
+    setWeeklyGoal,
+  } = useWeekedualeStore();
   const { language } = useSettingsStore();
   const { isGuest } = useAuthStore();
   const t = T[language];
 
-  const [modalOpen,    setModalOpen]    = useState(false);
-  const [editTarget,   setEditTarget]   = useState<CalendarEvent | null>(null);
-  const [editTargets,  setEditTargets]  = useState<CalendarEvent[] | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<CalendarEvent | null>(null);
+  const [editTargets, setEditTargets] = useState<CalendarEvent[] | null>(null);
 
-  const openAdd  = () => { setEditTarget(null); setEditTargets(null); setModalOpen(true); };
+  const openAdd = () => {
+    setEditTarget(null);
+    setEditTargets(null);
+    setModalOpen(true);
+  };
+
   const openEdit = (event: CalendarEvent) => {
     if (event.groupId) {
-      const group = events.filter((e) => e.groupId === event.groupId);
-      setEditTargets(group);
+      setEditTargets(events.filter((item) => item.groupId === event.groupId));
       setEditTarget(null);
     } else {
       setEditTarget(event);
@@ -38,64 +61,93 @@ export default function TimetablePage() {
     }
     setModalOpen(true);
   };
-  const closeModal = () => { setModalOpen(false); setEditTarget(null); setEditTargets(null); };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditTarget(null);
+    setEditTargets(null);
+  };
 
   const handleSave = (newEvents: Omit<CalendarEvent, "id">[], groupId?: string) => {
     if (editTargets) {
-      editTargets.forEach((e) => deleteEvent(e.id));
-      const gid = newEvents.length > 1 ? (groupId ?? crypto.randomUUID()) : undefined;
-      newEvents.forEach((e) => addEvent({ ...e, groupId: gid }));
-    } else if (editTarget) {
+      editTargets.forEach((event) => deleteEvent(event.id));
+      const nextGroupId = newEvents.length > 1 ? (groupId ?? crypto.randomUUID()) : undefined;
+      newEvents.forEach((event) => addEvent({ ...event, groupId: nextGroupId }));
+      return;
+    }
+
+    if (editTarget) {
       if (newEvents.length === 1) {
         updateEvent(editTarget.id, newEvents[0]);
       } else {
         deleteEvent(editTarget.id);
-        const gid = crypto.randomUUID();
-        newEvents.forEach((e) => addEvent({ ...e, groupId: gid }));
+        const nextGroupId = crypto.randomUUID();
+        newEvents.forEach((event) => addEvent({ ...event, groupId: nextGroupId }));
       }
-    } else {
-      const gid = newEvents.length > 1 ? crypto.randomUUID() : undefined;
-      newEvents.forEach((e) => addEvent({ ...e, groupId: gid }));
+      return;
     }
+
+    const nextGroupId = newEvents.length > 1 ? crypto.randomUUID() : undefined;
+    newEvents.forEach((event) => addEvent({ ...event, groupId: nextGroupId }));
   };
 
   return (
     <>
-      <header className="glass-nav border-b border-outline-variant/10 px-4 sm:px-6 md:px-8 py-3 flex items-center justify-between shrink-0 z-30">
-        <h2 className="text-base font-bold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
+      <header className="glass-nav z-30 flex shrink-0 items-center justify-between border-b border-outline-variant/10 px-4 py-3 sm:px-6 md:px-8">
+        <h2
+          className="text-base font-bold text-on-surface"
+          style={{ fontFamily: "var(--font-manrope)" }}
+        >
           {t.nav}
         </h2>
         <div className="flex items-center gap-2">
-          {isGuest && (
+          {isGuest ? (
             <Link
               href="/login"
-              className="px-4 py-2 rounded-full border border-outline-variant/40 text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-all"
+              className="rounded-full border border-outline-variant/40 px-4 py-2 text-sm font-semibold text-on-surface-variant transition-all hover:bg-surface-container"
             >
-              로그인
+              {t.login}
             </Link>
-          )}
+          ) : null}
           <button
             onClick={openAdd}
-            className="px-5 py-2 rounded-full btn-gradient text-sm font-bold text-on-primary flex items-center gap-1.5 active:scale-95 transition-all"
+            className="btn-gradient flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-bold text-on-primary transition-all active:scale-95"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
             {t.addEvent}
           </button>
         </div>
       </header>
 
-      <div className="px-8 pt-6 pb-4 shrink-0">
-        <h3 className="text-4xl font-extrabold text-on-surface tracking-tight" style={{ fontFamily: "var(--font-manrope)" }}>
+      <div className="shrink-0 px-8 pb-4 pt-6">
+        <h3
+          className="text-4xl font-extrabold tracking-tight text-on-surface"
+          style={{ fontFamily: "var(--font-manrope)" }}
+        >
           {t.title}
         </h3>
-        <p className="text-sm text-on-surface-variant mt-1">{t.subtitle}</p>
+        <p className="mt-1 text-sm text-on-surface-variant">{t.subtitle}</p>
       </div>
 
-      <main className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 pb-8">
+      <main className="flex-1 overflow-y-auto px-4 pb-8 sm:px-6 md:px-8">
         <WeekGrid events={events} onEventClick={openEdit} />
-        <BottomWidgets events={events} weeklyGoal={weeklyGoal} onGoalSave={setWeeklyGoal} />
+        <BottomWidgets
+          events={events}
+          weeklyGoal={weeklyGoal}
+          onGoalSave={setWeeklyGoal}
+        />
       </main>
 
       <EventModal

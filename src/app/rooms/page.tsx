@@ -1,18 +1,65 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
+import CreateRoomModal from "@/components/rooms/CreateRoomModal";
+import RoomCard from "@/components/rooms/RoomCard";
+import { useAuthStore } from "@/lib/authStore";
 import { useRoomStore } from "@/lib/roomStore";
 import { useSettingsStore } from "@/lib/settingsStore";
-import { useAuthStore } from "@/lib/authStore";
-import RoomCard from "@/components/rooms/RoomCard";
-import CreateRoomModal from "@/components/rooms/CreateRoomModal";
-import { RoomColor, RoomIcon } from "@/types/room";
+import type { RoomColor, RoomIcon } from "@/types/room";
+
+const T = {
+  ko: {
+    nav: "협업 공간",
+    login: "로그인",
+    createRoom: "방 만들기",
+    badge: (count: number) => `${count}개의 방`,
+    eyebrow: "Management",
+    title: (
+      <>
+        함께 움직이는 팀의
+        <br />
+        협업 공간을 만들어보세요.
+      </>
+    ),
+    description:
+      "팀을 초대하고, 일정 겹침을 확인하고, 회의 시간을 자연스럽게 조율할 수 있어요.",
+    createCardTitle: "새 방 만들기",
+    createCardDescription: "새로운 협업 공간을 열고 팀과 일정을 공유해 보세요.",
+    guestCreateTitle: "회원가입 후 방을 만들 수 있어요",
+    guestCreateDescription: "게스트 계정은 방 생성 기능이 제한됩니다.",
+    guestToast: "회원가입 후 방을 만들 수 있어요.",
+  },
+  en: {
+    nav: "Collaboration Spaces",
+    login: "Log in",
+    createRoom: "Create Room",
+    badge: (count: number) => `${count} room${count !== 1 ? "s" : ""}`,
+    eyebrow: "Management",
+    title: (
+      <>
+        Orchestrate your
+        <br />
+        shared momentum.
+      </>
+    ),
+    description:
+      "Invite your team, compare schedules, and coordinate meetings from one shared space.",
+    createCardTitle: "Create New Room",
+    createCardDescription: "Start a fresh collaboration space for your team.",
+    guestCreateTitle: "Sign up to create rooms",
+    guestCreateDescription: "Guest accounts cannot create new rooms yet.",
+    guestToast: "Sign up to create a room.",
+  },
+} as const;
 
 export default function RoomsPage() {
   const { rooms, addRoom } = useRoomStore();
   const { language } = useSettingsStore();
   const { isGuest } = useAuthStore();
+  const t = T[language];
+
   const [modalOpen, setModalOpen] = useState(false);
   const [guestToast, setGuestToast] = useState(false);
 
@@ -25,102 +72,124 @@ export default function RoomsPage() {
     setModalOpen(true);
   };
 
-  // 마지막 카드를 featured(wide)로
-  const featured = rooms.find((r) => r.id === "r4");
-  const regular  = rooms.filter((r) => r.id !== "r4");
+  const featured = rooms.find((room) => room.id === "r4");
+  const regular = rooms.filter((room) => room.id !== "r4");
 
-  const handleCreate = (data: { name: string; description: string; color: RoomColor; icon: RoomIcon }) => {
+  const handleCreate = (data: {
+    name: string;
+    description: string;
+    color: RoomColor;
+    icon: RoomIcon;
+  }) => {
     addRoom(data);
   };
 
   return (
     <>
-      {/* Topbar */}
-      <header className="glass-nav border-b border-outline-variant/10 px-4 sm:px-6 md:px-8 py-3 flex items-center justify-between shrink-0 z-30">
-        <h2 className="text-base font-bold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
-          Collaboration Spaces
+      <header className="glass-nav z-30 flex shrink-0 items-center justify-between border-b border-outline-variant/10 px-4 py-3 sm:px-6 md:px-8">
+        <h2
+          className="text-base font-bold text-on-surface"
+          style={{ fontFamily: "var(--font-manrope)" }}
+        >
+          {t.nav}
         </h2>
         <div className="flex items-center gap-2">
-          {isGuest && (
+          {isGuest ? (
             <Link
               href="/login"
-              className="px-4 py-2 rounded-full border border-outline-variant/40 text-sm font-semibold text-on-surface-variant hover:bg-surface-container transition-all"
+              className="rounded-full border border-outline-variant/40 px-4 py-2 text-sm font-semibold text-on-surface-variant transition-all hover:bg-surface-container"
             >
-              로그인
+              {t.login}
             </Link>
-          )}
+          ) : null}
           <button
             onClick={handleCreateClick}
-            className="px-5 py-2 rounded-full btn-gradient text-sm font-bold text-on-primary flex items-center gap-1.5 active:scale-95 transition-all"
+            className="btn-gradient flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-bold text-on-primary transition-all active:scale-95"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Create Room
+            {t.createRoom}
           </button>
         </div>
       </header>
 
-      {/* Main */}
-      <main className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-8">
-        {/* Hero */}
-        <section className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-6 md:px-8">
+        <section className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="max-w-xl">
-            <span className="text-[10px] font-bold text-primary uppercase tracking-widest block mb-2">
-              Management
+            <span className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-primary">
+              {t.eyebrow}
             </span>
             <h3
-              className="text-4xl font-extrabold text-on-surface tracking-tight leading-tight mb-3"
+              className="mb-3 text-4xl font-extrabold leading-tight tracking-tight text-on-surface"
               style={{ fontFamily: "var(--font-manrope)" }}
             >
-              {language === "ko" ? <>팀의 흐름을<br />함께 만들어가세요.</> : <>Orchestrate your<br />shared momentum.</>}
+              {t.title}
             </h3>
-            <p className="text-base text-on-surface-variant leading-relaxed">
-              {language === "ko"
-                ? "팀에 참여하고, 관리하며, 팀 전체의 일정을 유연하게 동기화하세요."
-                : "Join, manage, and sync your schedules across teams in a fluid editorial environment."}
+            <p className="text-base leading-relaxed text-on-surface-variant">
+              {t.description}
             </p>
           </div>
 
           <div className="shrink-0">
             <span className="inline-flex items-center gap-2 rounded-full bg-surface-container-high px-4 py-2 text-sm font-semibold text-on-surface">
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              {rooms.length} Room{language === "en" && rooms.length !== 1 ? "s" : (language === "ko" ? "개" : "")}
+              <span className="h-2 w-2 rounded-full bg-primary" />
+              {t.badge(rooms.length)}
             </span>
           </div>
         </section>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Regular cards */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {regular.map((room) => (
             <RoomCard key={room.id} room={room} />
           ))}
 
-          {/* Create New Room card */}
           <button
             onClick={handleCreateClick}
-            className="group relative bg-transparent border-2 border-dashed border-outline-variant/30 rounded-3xl p-7 flex flex-col items-center justify-center text-center transition-all duration-200 hover:bg-surface-container-low hover:border-outline-variant/60 cursor-pointer"
+            className="group relative flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-outline-variant/30 bg-transparent p-7 text-center transition-all duration-200 hover:border-outline-variant/60 hover:bg-surface-container-low"
           >
-            <div className="w-14 h-14 rounded-full bg-surface-container flex items-center justify-center mb-4 group-hover:bg-surface-container-lowest transition-colors">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-on-surface-variant group-hover:text-primary transition-colors">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-container transition-colors group-hover:bg-surface-container-lowest">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-on-surface-variant transition-colors group-hover:text-primary"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </div>
-            <h4 className="text-base font-bold text-on-surface mb-1" style={{ fontFamily: "var(--font-manrope)" }}>
-              {isGuest ? "회원가입 후 방을 생성해 보세요" : "Create New Room"}
+            <h4
+              className="mb-1 text-base font-bold text-on-surface"
+              style={{ fontFamily: "var(--font-manrope)" }}
+            >
+              {isGuest ? t.guestCreateTitle : t.createCardTitle}
             </h4>
             <p className="text-xs text-on-surface-variant">
-              {isGuest ? "게스트는 방을 만들 수 없어요" : "Start a new shared collaboration"}
+              {isGuest ? t.guestCreateDescription : t.createCardDescription}
             </p>
           </button>
 
-          {/* Featured card (Design Critique) */}
-          {featured && <RoomCard room={featured} featured />}
+          {featured ? <RoomCard room={featured} featured /> : null}
         </div>
       </main>
 
-      {!isGuest && (
+      {isGuest ? null : (
         <CreateRoomModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
@@ -128,12 +197,11 @@ export default function RoomsPage() {
         />
       )}
 
-      {/* 게스트 토스트 */}
-      {guestToast && (
-        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface text-sm font-semibold px-5 py-3 rounded-2xl shadow-lg">
-          회원가입 후 방을 생성해 보세요
+      {guestToast ? (
+        <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-2xl bg-on-surface px-5 py-3 text-sm font-semibold text-surface shadow-lg md:bottom-6">
+          {t.guestToast}
         </div>
-      )}
+      ) : null}
     </>
   );
 }

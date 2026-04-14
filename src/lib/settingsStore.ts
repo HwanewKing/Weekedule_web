@@ -47,7 +47,7 @@ async function patchSettings(data: Record<string, unknown>) {
   }
 }
 
-export const useSettingsStore = create<SettingsStore>((set, get) => ({
+export const useSettingsStore = create<SettingsStore>((set) => ({
   startOfWeek: "mon",
   showWeekends: true,
   gridStart: 8,

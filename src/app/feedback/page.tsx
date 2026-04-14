@@ -6,33 +6,41 @@ import { useSettingsStore } from "@/lib/settingsStore";
 const LABELS = {
   ko: {
     title: "피드백",
-    subtitle: "버그 신고, 기능 제안, 기타 의견을 보내주세요",
+    subtitle: "버그 제보, 기능 제안, 기타 의견을 보내 주세요.",
     typeLabel: "유형",
-    types: { bug: "🐛 버그 신고", suggestion: "💡 기능 제안", other: "💬 기타 의견" },
+    types: {
+      bug: "버그 제보",
+      suggestion: "기능 제안",
+      other: "기타 의견",
+    },
     subjectLabel: "제목",
-    subjectPlaceholder: "간단한 제목을 입력해주세요",
+    subjectPlaceholder: "간단한 제목을 입력해 주세요.",
     messageLabel: "내용",
-    messagePlaceholder: "자세한 내용을 입력해주세요...",
+    messagePlaceholder: "자세한 내용을 입력해 주세요...",
     send: "전송하기",
     sending: "전송 중...",
-    sent: "✓ 전송 완료",
-    error: "전송 실패 — 다시 시도해주세요",
+    sent: "전송 완료",
+    error: "전송에 실패했어요. 잠시 후 다시 시도해 주세요.",
   },
   en: {
     title: "Feedback",
-    subtitle: "Send us bug reports, feature requests, or general feedback",
+    subtitle: "Send bug reports, feature ideas, or general feedback.",
     typeLabel: "Type",
-    types: { bug: "🐛 Bug Report", suggestion: "💡 Feature Request", other: "💬 Other" },
+    types: {
+      bug: "Bug Report",
+      suggestion: "Feature Request",
+      other: "Other",
+    },
     subjectLabel: "Subject",
-    subjectPlaceholder: "Brief subject line",
+    subjectPlaceholder: "Add a short subject line",
     messageLabel: "Message",
-    messagePlaceholder: "Please describe in detail...",
+    messagePlaceholder: "Please describe your feedback in detail...",
     send: "Send",
     sending: "Sending...",
-    sent: "✓ Sent",
-    error: "Failed — please try again",
+    sent: "Sent",
+    error: "Sending failed. Please try again.",
   },
-};
+} as const;
 
 type FeedbackType = "bug" | "suggestion" | "other";
 type Status = "idle" | "sending" | "sent" | "error";
@@ -41,21 +49,29 @@ export default function FeedbackPage() {
   const { language } = useSettingsStore();
   const t = LABELS[language];
 
-  const [fbType, setFbType]       = useState<FeedbackType>("bug");
+  const [fbType, setFbType] = useState<FeedbackType>("bug");
   const [fbSubject, setFbSubject] = useState("");
   const [fbMessage, setFbMessage] = useState("");
-  const [status, setStatus]       = useState<Status>("idle");
+  const [status, setStatus] = useState<Status>("idle");
 
   const handleSend = async () => {
     if (!fbMessage.trim()) return;
+
     setStatus("sending");
+
     try {
       const res = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: fbType, subject: fbSubject, message: fbMessage }),
+        body: JSON.stringify({
+          type: fbType,
+          subject: fbSubject,
+          message: fbMessage,
+        }),
       });
+
       if (!res.ok) throw new Error();
+
       setStatus("sent");
       setFbSubject("");
       setFbMessage("");
@@ -67,34 +83,32 @@ export default function FeedbackPage() {
 
   return (
     <>
-      {/* Topbar */}
-      <header className="glass-nav border-b border-outline-variant/10 px-4 sm:px-6 md:px-8 py-3 flex items-center shrink-0 z-30">
+      <header className="glass-nav z-30 flex shrink-0 items-center border-b border-outline-variant/10 px-4 py-3 sm:px-6 md:px-8">
         <h2 className="text-base font-bold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
           {t.title}
         </h2>
       </header>
 
-      {/* Page header */}
-      <div className="px-8 pt-6 pb-4 shrink-0">
-        <h3 className="text-4xl font-extrabold text-on-surface tracking-tight" style={{ fontFamily: "var(--font-manrope)" }}>
+      <div className="shrink-0 px-8 pb-4 pt-6">
+        <h3 className="text-4xl font-extrabold tracking-tight text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
           {t.title}
         </h3>
-        <p className="text-sm text-on-surface-variant mt-1">{t.subtitle}</p>
+        <p className="mt-1 text-sm text-on-surface-variant">{t.subtitle}</p>
       </div>
 
-      {/* Content */}
-      <main className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 pb-8">
-        <div className="max-w-lg flex flex-col gap-5">
-
-          {/* Type selector */}
-          <div className="bg-surface-container-low rounded-2xl p-5 flex flex-col gap-3">
+      <main className="flex-1 overflow-y-auto px-4 pb-8 sm:px-6 md:px-8">
+        <div className="flex max-w-lg flex-col gap-5">
+          <div className="flex flex-col gap-3 rounded-2xl bg-surface-container-low p-5">
             <p className="text-xs font-semibold text-on-surface-variant">{t.typeLabel}</p>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex flex-wrap gap-2">
               {(["bug", "suggestion", "other"] as FeedbackType[]).map((type) => (
                 <button
                   key={type}
-                  onClick={() => { setFbType(type); if (status === "sent") setStatus("idle"); }}
-                  className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                  onClick={() => {
+                    setFbType(type);
+                    if (status === "sent") setStatus("idle");
+                  }}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition-all ${
                     fbType === type
                       ? "bg-primary text-on-primary shadow-ambient"
                       : "bg-surface-container text-on-surface-variant hover:bg-surface-container-highest"
@@ -106,50 +120,55 @@ export default function FeedbackPage() {
             </div>
           </div>
 
-          {/* Subject */}
-          <div className="bg-surface-container-low rounded-2xl p-5 flex flex-col gap-2">
+          <div className="flex flex-col gap-2 rounded-2xl bg-surface-container-low p-5">
             <label className="text-xs font-semibold text-on-surface-variant">{t.subjectLabel}</label>
             <input
               type="text"
               value={fbSubject}
-              onChange={(e) => { setFbSubject(e.target.value); if (status === "sent") setStatus("idle"); }}
+              onChange={(event) => {
+                setFbSubject(event.target.value);
+                if (status === "sent") setStatus("idle");
+              }}
               placeholder={t.subjectPlaceholder}
-              className="w-full bg-surface-container rounded-xl px-4 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+              className="w-full rounded-xl bg-surface-container px-4 py-2.5 text-sm text-on-surface outline-none transition-all placeholder:text-on-surface-variant/50 focus:ring-2 focus:ring-primary/40"
             />
           </div>
 
-          {/* Message */}
-          <div className="bg-surface-container-low rounded-2xl p-5 flex flex-col gap-2">
+          <div className="flex flex-col gap-2 rounded-2xl bg-surface-container-low p-5">
             <label className="text-xs font-semibold text-on-surface-variant">{t.messageLabel}</label>
             <textarea
               value={fbMessage}
-              onChange={(e) => { setFbMessage(e.target.value); if (status === "sent") setStatus("idle"); }}
+              onChange={(event) => {
+                setFbMessage(event.target.value);
+                if (status === "sent") setStatus("idle");
+              }}
               placeholder={t.messagePlaceholder}
               rows={7}
               maxLength={2000}
-              className="w-full bg-surface-container rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none focus:ring-2 focus:ring-primary/40 transition-all resize-none leading-relaxed"
+              className="w-full resize-none rounded-xl bg-surface-container px-4 py-3 text-sm leading-relaxed text-on-surface outline-none transition-all placeholder:text-on-surface-variant/50 focus:ring-2 focus:ring-primary/40"
             />
-            <p className="text-xs text-on-surface-variant/50 text-right">{fbMessage.length} / 2000</p>
+            <p className="text-right text-xs text-on-surface-variant/50">{fbMessage.length} / 2000</p>
           </div>
 
-          {/* Send button */}
           <button
             onClick={handleSend}
             disabled={status === "sending" || status === "sent" || !fbMessage.trim()}
-            className={`w-full py-3 rounded-2xl text-sm font-bold transition-all active:scale-95 ${
+            className={`w-full rounded-2xl py-3 text-sm font-bold transition-all active:scale-95 ${
               status === "sent"
                 ? "bg-green-500/20 text-green-500"
                 : status === "error"
-                ? "bg-red-500/20 text-red-500"
-                : "btn-gradient text-on-primary disabled:opacity-40 disabled:cursor-not-allowed"
+                  ? "bg-red-500/20 text-red-500"
+                  : "btn-gradient text-on-primary disabled:cursor-not-allowed disabled:opacity-40"
             }`}
           >
-            {status === "sending" ? t.sending
-              : status === "sent" ? t.sent
-              : status === "error" ? t.error
-              : t.send}
+            {status === "sending"
+              ? t.sending
+              : status === "sent"
+                ? t.sent
+                : status === "error"
+                  ? t.error
+                  : t.send}
           </button>
-
         </div>
       </main>
     </>

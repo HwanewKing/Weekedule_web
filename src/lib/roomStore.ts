@@ -1,7 +1,8 @@
 "use client";
 
 import { create } from "zustand";
-import { Room, RoomColor, RoomIcon, ConfirmedSlot } from "@/types/room";
+import { CalendarEvent } from "@/types/event";
+import { ConfirmedSlot, Room, RoomColor, RoomIcon } from "@/types/room";
 
 interface RoomStore {
   rooms: Room[];
@@ -11,42 +12,96 @@ interface RoomStore {
   addConfirmedSlots: (roomId: string, slots: ConfirmedSlot[]) => void;
   removeConfirmedSlots: (roomId: string, ids: string[]) => void;
   setConfirmedSlots: (roomId: string, slots: ConfirmedSlot[]) => void;
-  addRoom: (data: { name: string; description: string; color: RoomColor; icon: RoomIcon }) => Promise<void>;
+  addRoom: (data: {
+    name: string;
+    description: string;
+    color: RoomColor;
+    icon: RoomIcon;
+  }) => Promise<void>;
   updateRoom: (id: string, updates: Partial<Room>) => Promise<void>;
   deleteRoom: (id: string) => Promise<void>;
   addMember: (roomId: string, userId: string) => Promise<{ error?: string }>;
   removeMember: (roomId: string, memberId: string) => Promise<void>;
-  updateMemberColor: (roomId: string, memberId: string, colorId: string) => Promise<void>;
+  updateMemberColor: (
+    roomId: string,
+    memberId: string,
+    colorId: string
+  ) => Promise<void>;
 }
 
-// API 응답 → Room 타입 변환
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapRoom(r: any): Room {
+type RawRoomEvent = CalendarEvent;
+
+type RawRoomMember = {
+  id: string;
+  colorId?: string | null;
+  user?: {
+    name?: string | null;
+  } | null;
+  events?: Array<{ event?: RawRoomEvent | null } | null> | null;
+  personalEvents?: RawRoomEvent[] | null;
+};
+
+type RawRoom = {
+  id: string;
+  name: string;
+  description?: string | null;
+  color: RoomColor;
+  icon: RoomIcon;
+  heatmapColor?: string | null;
+  nextSync?: string | null;
+  nextSyncDay?: string | null;
+  createdAt: string | Date;
+  members?: RawRoomMember[] | null;
+};
+
+type RawConfirmedSlot = Omit<ConfirmedSlot, "createdAt"> & {
+  createdAt: string | Date;
+};
+
+export function normalizeConfirmedSlot(slot: RawConfirmedSlot): ConfirmedSlot {
   return {
-    id: r.id,
-    name: r.name,
-    description: r.description ?? "",
-    color: r.color,
-    icon: r.icon,
-    heatmapColor: r.heatmapColor ?? "blue",
-    nextSync: r.nextSync,
-    nextSyncDay: r.nextSyncDay,
-    createdAt: typeof r.createdAt === "string" ? r.createdAt : new Date(r.createdAt).toISOString(),
-    members: (r.members ?? []).map((m: any) => {
-      // RoomMemberEvent를 통해 공유된 이벤트
-      const sharedEvents = (m.events ?? []).map((e: any) => e.event);
-      // 개인 CalendarEvent (서버에서 직접 조회)
-      const personalEvents: any[] = m.personalEvents ?? [];
-      // id 기준 dedup 후 병합
-      const eventMap = new Map<string, any>();
-      for (const e of [...sharedEvents, ...personalEvents]) {
-        if (e && e.id) eventMap.set(e.id, e);
+    ...slot,
+    createdAt:
+      typeof slot.createdAt === "string"
+        ? slot.createdAt
+        : new Date(slot.createdAt).toISOString(),
+  };
+}
+
+function mapRoom(room: RawRoom): Room {
+  return {
+    id: room.id,
+    name: room.name,
+    description: room.description ?? "",
+    color: room.color,
+    icon: room.icon,
+    heatmapColor: room.heatmapColor ?? "blue",
+    nextSync: room.nextSync ?? undefined,
+    nextSyncDay: room.nextSyncDay ?? undefined,
+    createdAt:
+      typeof room.createdAt === "string"
+        ? room.createdAt
+        : new Date(room.createdAt).toISOString(),
+    members: (room.members ?? []).map((member) => {
+      const sharedEvents = (member.events ?? [])
+        .map((eventRef) => eventRef?.event)
+        .filter((event): event is RawRoomEvent => !!event);
+      const personalEvents = member.personalEvents ?? [];
+      const eventMap = new Map<string, RawRoomEvent>();
+
+      for (const event of [...sharedEvents, ...personalEvents]) {
+        if (event.id) {
+          eventMap.set(event.id, event);
+        }
       }
+
+      const name = member.user?.name ?? "";
+
       return {
-        id: m.id,
-        name: m.user?.name ?? "",
-        initials: (m.user?.name ?? "").slice(0, 2),
-        colorId: m.colorId ?? "blue",
+        id: member.id,
+        name,
+        initials: name.slice(0, 2),
+        colorId: member.colorId ?? "blue",
         events: Array.from(eventMap.values()),
       };
     }),
@@ -60,12 +115,12 @@ export const useRoomStore = create<RoomStore>()((set, get) => ({
   fetchConfirmedSlots: async (roomId: string) => {
     const res = await fetch(`/api/rooms/${roomId}/confirm`);
     if (!res.ok) return;
+
     const data = await res.json();
-    const slots: ConfirmedSlot[] = (data.slots ?? []).map((s: any) => ({
-      ...s,
-      createdAt: typeof s.createdAt === "string" ? s.createdAt : new Date(s.createdAt).toISOString(),
+    const slots: ConfirmedSlot[] = (data.slots ?? []).map(normalizeConfirmedSlot);
+    set((state) => ({
+      confirmedSlots: { ...state.confirmedSlots, [roomId]: slots },
     }));
-    set((state) => ({ confirmedSlots: { ...state.confirmedSlots, [roomId]: slots } }));
   },
 
   addConfirmedSlots: (roomId: string, slots: ConfirmedSlot[]) => {
@@ -82,7 +137,9 @@ export const useRoomStore = create<RoomStore>()((set, get) => ({
     set((state) => ({
       confirmedSlots: {
         ...state.confirmedSlots,
-        [roomId]: (state.confirmedSlots[roomId] ?? []).filter((s) => !idSet.has(s.id)),
+        [roomId]: (state.confirmedSlots[roomId] ?? []).filter(
+          (slot) => !idSet.has(slot.id)
+        ),
       },
     }));
   },
@@ -96,6 +153,7 @@ export const useRoomStore = create<RoomStore>()((set, get) => ({
   fetchRooms: async () => {
     const res = await fetch("/api/rooms");
     if (!res.ok) return;
+
     const data = await res.json();
     set({ rooms: (data.rooms ?? []).map(mapRoom) });
   },
@@ -106,23 +164,28 @@ export const useRoomStore = create<RoomStore>()((set, get) => ({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, description, color, icon }),
     });
+
     if (res.ok) {
       const data = await res.json();
-      set((s) => ({ rooms: [mapRoom(data.room), ...s.rooms] }));
+      set((state) => ({ rooms: [mapRoom(data.room), ...state.rooms] }));
     }
   },
 
   updateRoom: async (id, updates) => {
     const prev = get().rooms;
-    set((s) => ({
-      rooms: s.rooms.map((r) => (r.id === id ? { ...r, ...updates } : r)),
+    set((state) => ({
+      rooms: state.rooms.map((room) =>
+        room.id === id ? { ...room, ...updates } : room
+      ),
     }));
+
     try {
       const res = await fetch(`/api/rooms/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       });
+
       if (!res.ok) set({ rooms: prev });
     } catch {
       set({ rooms: prev });
@@ -131,7 +194,8 @@ export const useRoomStore = create<RoomStore>()((set, get) => ({
 
   deleteRoom: async (id) => {
     const prev = get().rooms;
-    set((s) => ({ rooms: s.rooms.filter((r) => r.id !== id) }));
+    set((state) => ({ rooms: state.rooms.filter((room) => room.id !== id) }));
+
     try {
       const res = await fetch(`/api/rooms/${id}`, { method: "DELETE" });
       if (!res.ok) set({ rooms: prev });
@@ -146,23 +210,31 @@ export const useRoomStore = create<RoomStore>()((set, get) => ({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId }),
     });
+
     const data = await res.json();
     if (!res.ok) return { error: data.error };
+
     await get().fetchRooms();
     return {};
   },
 
   removeMember: async (roomId, memberId) => {
     const prev = get().rooms;
-    set((s) => ({
-      rooms: s.rooms.map((r) =>
-        r.id === roomId
-          ? { ...r, members: r.members.filter((m) => m.id !== memberId) }
-          : r
+    set((state) => ({
+      rooms: state.rooms.map((room) =>
+        room.id === roomId
+          ? {
+              ...room,
+              members: room.members.filter((member) => member.id !== memberId),
+            }
+          : room
       ),
     }));
+
     try {
-      const res = await fetch(`/api/rooms/${roomId}/members/${memberId}`, { method: "DELETE" });
+      const res = await fetch(`/api/rooms/${roomId}/members/${memberId}`, {
+        method: "DELETE",
+      });
       if (!res.ok) set({ rooms: prev });
     } catch {
       set({ rooms: prev });
@@ -171,13 +243,19 @@ export const useRoomStore = create<RoomStore>()((set, get) => ({
 
   updateMemberColor: async (roomId, memberId, colorId) => {
     const prev = get().rooms;
-    set((s) => ({
-      rooms: s.rooms.map((r) =>
-        r.id === roomId
-          ? { ...r, members: r.members.map((m) => (m.id === memberId ? { ...m, colorId } : m)) }
-          : r
+    set((state) => ({
+      rooms: state.rooms.map((room) =>
+        room.id === roomId
+          ? {
+              ...room,
+              members: room.members.map((member) =>
+                member.id === memberId ? { ...member, colorId } : member
+              ),
+            }
+          : room
       ),
     }));
+
     try {
       const res = await fetch(`/api/rooms/${roomId}/members/${memberId}`, {
         method: "PATCH",

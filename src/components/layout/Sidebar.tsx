@@ -1,26 +1,62 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useAuthStore } from "@/lib/authStore";
 import { useFriendStore } from "@/lib/friendStore";
 import { useNotificationStore } from "@/lib/notificationStore";
 import { useSettingsStore } from "@/lib/settingsStore";
-import { useAuthStore } from "@/lib/authStore";
 
 const NAV_LABELS = {
-  ko: { "/home": "시간표", "/rooms": "Rooms", "/friends": "친구", "/notifications": "알림", "/settings": "설정", "/feedback": "피드백" },
-  en: { "/home": "Timetable", "/rooms": "Rooms", "/friends": "Friends", "/notifications": "Notifications", "/settings": "Settings", "/feedback": "Feedback" },
+  ko: {
+    "/home": "시간표",
+    "/rooms": "방",
+    "/friends": "친구",
+    "/notifications": "알림",
+    "/settings": "설정",
+    "/feedback": "피드백",
+  },
+  en: {
+    "/home": "Timetable",
+    "/rooms": "Rooms",
+    "/friends": "Friends",
+    "/notifications": "Notifications",
+    "/settings": "Settings",
+    "/feedback": "Feedback",
+  },
 } as const;
 
-// 모바일 하단 바에는 5개만 표시 (피드백 제외)
-const MOBILE_NAV_HREFS = ["/home", "/rooms", "/friends", "/notifications", "/settings"] as const;
+const MOBILE_NAV_HREFS = [
+  "/home",
+  "/rooms",
+  "/friends",
+  "/notifications",
+  "/settings",
+] as const;
 
-const NAV_ICONS: Record<string, React.ReactNode> = {
+const NAV_HREFS = [
+  "/home",
+  "/rooms",
+  "/friends",
+  "/notifications",
+  "/settings",
+  "/feedback",
+] as const;
+
+type NavHref = typeof NAV_HREFS[number];
+type MobileNavHref = typeof MOBILE_NAV_HREFS[number];
+
+const NAV_ICONS: Record<string, ReactNode> = {
   "/home": (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-      <line x1="8" y1="14" x2="8" y2="14" /><line x1="12" y1="14" x2="12" y2="14" /><line x1="16" y1="14" x2="16" y2="14" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <line x1="8" y1="14" x2="8" y2="14" />
+      <line x1="12" y1="14" x2="12" y2="14" />
+      <line x1="16" y1="14" x2="16" y2="14" />
     </svg>
   ),
   "/rooms": (
@@ -51,39 +87,35 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
   ),
   "/feedback": (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     </svg>
   ),
 };
 
-const NAV_HREFS = ["/home", "/rooms", "/friends", "/notifications", "/settings", "/feedback"] as const;
-type NavHref = typeof NAV_HREFS[number];
-type MobileNavHref = typeof MOBILE_NAV_HREFS[number];
-
 export default function Sidebar() {
   const pathname = usePathname();
-  const router   = useRouter();
+  const router = useRouter();
   const { user, logout } = useAuthStore();
   const { pendingIn: pendingRequests } = useFriendStore();
   const { notifications } = useNotificationStore();
   const { language } = useSettingsStore();
 
+  const labels = NAV_LABELS[language];
+  const unreadNotifCount = notifications.filter((notification) => !notification.read).length;
+  const displayName = user?.name ?? (language === "ko" ? "게스트" : "Guest");
+  const logoutLabel = language === "ko" ? "로그아웃" : "Log out";
+
+  const initials = displayName
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   const handleLogout = () => {
     logout();
     router.replace("/login");
   };
-
-  const displayName = user?.name ?? "Guest";
-
-  const unreadNotifCount = notifications.filter((n) => !n.read).length;
-  const labels = NAV_LABELS[language];
-
-  const initials = displayName
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
   function getBadge(href: NavHref) {
     if (href === "/notifications" && unreadNotifCount > 0) return unreadNotifCount;
@@ -93,52 +125,49 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* ── 데스크탑 사이드바 (md 이상) ── */}
-      <aside className="hidden md:flex w-56 min-w-56 flex-col bg-surface-container-low h-full">
-        {/* Logo */}
-        <div className="px-5 pt-6 pb-5">
+      <aside className="hidden h-full w-56 min-w-56 flex-col bg-surface-container-low md:flex">
+        <div className="px-5 pb-5 pt-6">
           <h1
-            className="text-lg font-extrabold tracking-tight text-primary leading-none"
+            className="text-lg font-extrabold leading-none tracking-tight text-primary"
             style={{ fontFamily: "var(--font-manrope)" }}
           >
             Weekedule
           </h1>
-          <p className="text-[10px] text-on-surface-variant mt-0.5 font-medium tracking-wide uppercase">
+          <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-on-surface-variant">
             Orchestrated Flow
           </p>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 flex flex-col gap-0.5">
+        <nav className="flex flex-1 flex-col gap-0.5 px-3">
           {NAV_HREFS.map((href) => {
             const isActive = pathname === href;
             const badge = getBadge(href);
+
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 ${
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
                   isActive
                     ? "bg-surface-container-lowest text-primary shadow-ambient"
                     : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
                 }`}
               >
-                {isActive && (
-                  <span className="absolute left-0 w-0.5 h-6 bg-primary rounded-r-full" />
-                )}
+                {isActive ? (
+                  <span className="absolute left-0 h-6 w-0.5 rounded-r-full bg-primary" />
+                ) : null}
                 <span className={isActive ? "text-primary" : ""}>{NAV_ICONS[href]}</span>
                 <span>{labels[href]}</span>
-                {badge !== null && (
-                  <span className="ml-auto text-[10px] bg-primary text-on-primary rounded-full px-1.5 py-0.5 font-semibold leading-none">
+                {badge !== null ? (
+                  <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-on-primary">
                     {badge}
                   </span>
-                )}
+                ) : null}
               </Link>
             );
           })}
         </nav>
 
-        {/* AdSense 광고 영역 */}
         <div className="px-3 py-3">
           <ins
             className="adsbygoogle"
@@ -150,55 +179,58 @@ export default function Sidebar() {
           />
         </div>
 
-        {/* User */}
-        <div className="px-3 pb-5 pt-3 flex flex-col gap-1">
-          <div className="flex items-center gap-3 px-3 py-2.5 bg-surface-container rounded-xl">
-            <div className="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-xs font-bold text-primary shrink-0">
+        <div className="flex flex-col gap-1 px-3 pb-5 pt-3">
+          <div className="flex items-center gap-3 rounded-xl bg-surface-container px-3 py-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-fixed text-xs font-bold text-primary">
               {initials}
             </div>
-            <div className="overflow-hidden flex-1 min-w-0">
-              <p className="text-sm font-semibold text-on-surface truncate leading-tight">{displayName}</p>
-              <p className="text-[10px] text-on-surface-variant truncate">{user?.email ?? ""}</p>
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <p className="truncate text-sm font-semibold leading-tight text-on-surface">
+                {displayName}
+              </p>
+              <p className="truncate text-[10px] text-on-surface-variant">
+                {user?.email ?? ""}
+              </p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
+            className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
-            {language === "en" ? "Log out" : "로그아웃"}
+            {logoutLabel}
           </button>
         </div>
       </aside>
 
-      {/* ── 모바일 하단 네비게이션 바 (md 미만) ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-container-low border-t border-outline-variant/30 flex items-stretch h-16 safe-area-bottom">
+      <nav className="safe-area-bottom fixed bottom-0 left-0 right-0 z-50 flex h-16 items-stretch border-t border-outline-variant/30 bg-surface-container-low md:hidden">
         {MOBILE_NAV_HREFS.map((href) => {
           const isActive = pathname === href;
           const badge = getBadge(href as MobileNavHref);
           const label = labels[href as NavHref];
+
           return (
             <Link
               key={href}
               href={href}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-colors ${
+              className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors ${
                 isActive ? "text-primary" : "text-on-surface-variant"
               }`}
             >
-              {isActive && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-b-full" />
-              )}
+              {isActive ? (
+                <span className="absolute left-1/2 top-0 h-0.5 w-8 -translate-x-1/2 rounded-b-full bg-primary" />
+              ) : null}
               <span className="relative">
                 {NAV_ICONS[href]}
-                {badge !== null && (
-                  <span className="absolute -top-1 -right-2 text-[9px] bg-primary text-on-primary rounded-full min-w-[14px] h-[14px] flex items-center justify-center font-bold leading-none px-0.5">
+                {badge !== null ? (
+                  <span className="absolute -right-2 -top-1 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-primary px-0.5 text-[9px] font-bold leading-none text-on-primary">
                     {badge}
                   </span>
-                )}
+                ) : null}
               </span>
               <span className="text-[10px] font-medium leading-none">{label}</span>
             </Link>

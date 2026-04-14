@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useFriendStore } from "@/lib/friendStore";
 import { useAuthStore } from "@/lib/authStore";
+import { useFriendStore } from "@/lib/friendStore";
 import { useRoomStore } from "@/lib/roomStore";
+import { useSettingsStore } from "@/lib/settingsStore";
 import { getMemberStyle } from "@/types/room";
 
 type InviteTab = "link" | "friend";
@@ -13,19 +14,58 @@ interface Props {
   onClose: () => void;
 }
 
+const T = {
+  ko: {
+    title: "멤버 초대하기",
+    subtitle: "친구를 초대하거나 링크를 공유해 보세요.",
+    friendTab: "친구 초대",
+    linkTab: "링크 초대",
+    noFriends: "아직 친구가 없어요.",
+    noFriendsDesc: "친구 탭에서 먼저 친구를 추가해 보세요!",
+    alreadyMember: "이미 참여 중",
+    added: "추가 완료",
+    invite: "초대",
+    linkTitle: "초대 링크 (7일 유효)",
+    generating: "링크 생성 중...",
+    createLink: "링크 생성하기",
+    copy: "복사",
+    copied: "복사 완료",
+    linkNote: "링크를 통해 참여하면 방 멤버 목록에 자동으로 추가돼요.",
+  },
+  en: {
+    title: "Invite Members",
+    subtitle: "Invite friends or share a link.",
+    friendTab: "Invite Friends",
+    linkTab: "Invite by Link",
+    noFriends: "No friends yet.",
+    noFriendsDesc: "Add friends first from the Friends page.",
+    alreadyMember: "Already joined",
+    added: "Added",
+    invite: "Invite",
+    linkTitle: "Invite Link (valid for 7 days)",
+    generating: "Generating link...",
+    createLink: "Create Link",
+    copy: "Copy",
+    copied: "Copied",
+    linkNote: "Anyone joining from this link will be added to the room automatically.",
+  },
+} as const;
+
 export default function InviteModal({ roomId, onClose }: Props) {
+  const { language } = useSettingsStore();
+  const { user } = useAuthStore();
+  const { friends } = useFriendStore();
+  const { rooms, addMember } = useRoomStore();
+  const t = T[language];
+
   const [tab, setTab] = useState<InviteTab>("friend");
   const [copied, setCopied] = useState(false);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [linkLoading, setLinkLoading] = useState(false);
 
-  const { user } = useAuthStore();
-  const { friends } = useFriendStore();
-  const { rooms, addMember } = useRoomStore();
-
-  const room = rooms.find((r) => r.id === roomId);
-  const existingMemberUserIds = new Set(room?.members.map((m) => m.id) ?? []);
+  const room = rooms.find((item) => item.id === roomId);
+  const existingMemberUserIds = new Set(room?.members.map((member) => member.id) ?? []);
 
   const generateLink = async () => {
     if (inviteLink) return;
@@ -45,14 +85,18 @@ export default function InviteModal({ roomId, onClose }: Props) {
     }
   };
 
-  const handleTabChange = (t: InviteTab) => {
-    setTab(t);
-    if (t === "link") generateLink();
+  const handleTabChange = (nextTab: InviteTab) => {
+    setTab(nextTab);
+    if (nextTab === "link") generateLink();
   };
 
   const handleCopy = async () => {
     if (!inviteLink) return;
-    try { await navigator.clipboard.writeText(inviteLink); } catch { /* fallback */ }
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+    } catch {
+      // noop
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -68,37 +112,39 @@ export default function InviteModal({ roomId, onClose }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(event) => event.target === event.currentTarget && onClose()}
     >
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative z-10 bg-surface-container-lowest rounded-3xl shadow-ambient border border-outline-variant/10 w-full max-w-md mx-4 overflow-hidden">
-        {/* Header */}
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+      <div className="relative z-10 mx-4 w-full max-w-md overflow-hidden rounded-3xl border border-outline-variant/10 bg-surface-container-lowest shadow-ambient">
+        <div className="flex items-center justify-between px-6 pb-4 pt-6">
           <div>
             <h2 className="text-lg font-extrabold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
-              멤버 초대하기
+              {t.title}
             </h2>
-            <p className="text-xs text-on-surface-variant mt-0.5">친구를 초대하거나 링크를 공유하세요</p>
+            <p className="mt-0.5 text-xs text-on-surface-variant">{t.subtitle}</p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container transition-colors hover:bg-surface-container-high"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="px-6 flex gap-1 mb-4">
-          {([["friend", "친구 초대"], ["link", "링크로 초대"]] as [InviteTab, string][]).map(([t, label]) => (
+        <div className="mb-4 flex gap-1 px-6">
+          {([
+            ["friend", t.friendTab],
+            ["link", t.linkTab],
+          ] as [InviteTab, string][]).map(([value, label]) => (
             <button
-              key={t}
-              onClick={() => handleTabChange(t)}
-              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
-                tab === t ? "bg-primary text-on-primary" : "text-on-surface-variant hover:bg-surface-container"
+              key={value}
+              onClick={() => handleTabChange(value)}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
+                tab === value ? "bg-primary text-on-primary" : "text-on-surface-variant hover:bg-surface-container"
               }`}
             >
               {label}
@@ -106,51 +152,51 @@ export default function InviteModal({ roomId, onClose }: Props) {
           ))}
         </div>
 
-        {/* Content */}
         <div className="px-6 pb-6">
-          {tab === "friend" && (
+          {tab === "friend" ? (
             <div className="flex flex-col gap-2">
               {friends.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-sm text-on-surface-variant">아직 친구가 없어요</p>
-                  <p className="text-xs text-on-surface-variant mt-1">친구 탭에서 먼저 친구를 추가해보세요!</p>
+                <div className="py-8 text-center">
+                  <p className="text-sm text-on-surface-variant">{t.noFriends}</p>
+                  <p className="mt-1 text-xs text-on-surface-variant">{t.noFriendsDesc}</p>
                 </div>
               ) : (
-                <div className="flex flex-col gap-1 max-h-72 overflow-y-auto -mx-1 px-1">
+                <div className="-mx-1 flex max-h-72 flex-col gap-1 overflow-y-auto px-1">
                   {friends.map((friend) => {
                     const isAlreadyMember = existingMemberUserIds.has(friend.userId);
                     const isAdded = addedIds.has(friend.userId);
                     const memberStyle = getMemberStyle(friend.colorId);
+
                     return (
                       <div
                         key={friend.userId}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-surface-container transition-colors"
+                        className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors hover:bg-surface-container"
                       >
                         <div
                           style={memberStyle}
-                          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold"
                         >
                           {friend.initials}
                         </div>
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold text-on-surface">{friend.name}</p>
                           <p className="text-[11px] text-on-surface-variant">{friend.email}</p>
                         </div>
                         <div className="shrink-0">
                           {isAlreadyMember ? (
-                            <span className="text-[10px] text-on-surface-variant px-2.5 py-1 bg-surface-container rounded-full">
-                              이미 참여 중
+                            <span className="rounded-full bg-surface-container px-2.5 py-1 text-[10px] text-on-surface-variant">
+                              {t.alreadyMember}
                             </span>
                           ) : isAdded ? (
-                            <span className="text-[10px] text-[#16a34a] px-2.5 py-1 bg-[#dcfce7] rounded-full font-semibold">
-                              추가됨 ✓
+                            <span className="rounded-full bg-[#dcfce7] px-2.5 py-1 text-[10px] font-semibold text-[#16a34a]">
+                              {t.added}
                             </span>
                           ) : (
                             <button
                               onClick={() => handleInviteFriend(friend.userId)}
-                              className="px-3 py-1.5 rounded-full btn-gradient text-xs font-bold text-on-primary"
+                              className="btn-gradient rounded-full px-3 py-1.5 text-xs font-bold text-on-primary"
                             >
-                              초대
+                              {t.invite}
                             </button>
                           )}
                         </div>
@@ -160,42 +206,40 @@ export default function InviteModal({ roomId, onClose }: Props) {
                 </div>
               )}
             </div>
-          )}
+          ) : null}
 
-          {tab === "link" && (
+          {tab === "link" ? (
             <div className="flex flex-col gap-3">
-              <div className="bg-surface-container rounded-2xl p-4">
-                <p className="text-xs text-on-surface-variant mb-2 font-medium">초대 링크 (7일 유효)</p>
+              <div className="rounded-2xl bg-surface-container p-4">
+                <p className="mb-2 text-xs font-medium text-on-surface-variant">{t.linkTitle}</p>
                 {linkLoading ? (
                   <div className="flex items-center gap-2 py-2">
-                    <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                    <span className="text-xs text-on-surface-variant">링크 생성 중...</span>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <span className="text-xs text-on-surface-variant">{t.generating}</span>
                   </div>
                 ) : inviteLink ? (
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 text-xs text-on-surface bg-surface-container-high rounded-xl px-3 py-2 font-mono truncate">
+                    <code className="flex-1 truncate rounded-xl bg-surface-container-high px-3 py-2 font-mono text-xs text-on-surface">
                       {inviteLink}
                     </code>
                     <button
                       onClick={handleCopy}
-                      className={`px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                      className={`shrink-0 rounded-xl px-3 py-2 text-xs font-bold transition-all ${
                         copied ? "bg-[#dcfce7] text-[#16a34a]" : "btn-gradient text-on-primary"
                       }`}
                     >
-                      {copied ? "복사됨 ✓" : "복사"}
+                      {copied ? t.copied : t.copy}
                     </button>
                   </div>
                 ) : (
-                  <button onClick={generateLink} className="text-xs text-primary font-semibold hover:underline">
-                    링크 생성하기
+                  <button onClick={generateLink} className="text-xs font-semibold text-primary hover:underline">
+                    {t.createLink}
                   </button>
                 )}
               </div>
-              <p className="text-[11px] text-on-surface-variant text-center">
-                링크를 통해 참여한 사람은 이 룸에 자동으로 추가돼요
-              </p>
+              <p className="text-center text-[11px] text-on-surface-variant">{t.linkNote}</p>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

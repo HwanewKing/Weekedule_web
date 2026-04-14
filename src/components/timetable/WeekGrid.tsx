@@ -1,14 +1,12 @@
 "use client";
 
-import { CalendarEvent, timeToMinutes } from "@/types/event";
 import { useSettingsStore } from "@/lib/settingsStore";
+import type { CalendarEvent } from "@/types/event";
 import EventCard from "./EventCard";
 
 const SLOT_HEIGHT_PX = 64;
-
 const DAY_LABELS_KO = ["월", "화", "수", "목", "금", "토", "일"];
 const DAY_LABELS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-// dayOfWeek 0=월 … 6=일
 
 interface WeekGridProps {
   events: CalendarEvent[];
@@ -21,12 +19,17 @@ interface EventLayout {
   totalCols: number;
 }
 
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
 function computeOverlapLayout(events: CalendarEvent[]): EventLayout[] {
   if (events.length === 0) return [];
 
   const sorted = [...events].sort((a, b) => {
-    const d = timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
-    return d !== 0 ? d : timeToMinutes(b.endTime) - timeToMinutes(a.endTime);
+    const diff = timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
+    return diff !== 0 ? diff : timeToMinutes(b.endTime) - timeToMinutes(a.endTime);
   });
 
   const colEnds: number[] = [];
@@ -34,16 +37,18 @@ function computeOverlapLayout(events: CalendarEvent[]): EventLayout[] {
 
   for (const event of sorted) {
     const startMin = timeToMinutes(event.startTime);
-    const endMin   = timeToMinutes(event.endTime);
+    const endMin = timeToMinutes(event.endTime);
     let placed = false;
-    for (let c = 0; c < colEnds.length; c++) {
-      if (colEnds[c] <= startMin) {
-        colEnds[c] = endMin;
-        assigned.push({ event, col: c });
+
+    for (let col = 0; col < colEnds.length; col += 1) {
+      if (colEnds[col] <= startMin) {
+        colEnds[col] = endMin;
+        assigned.push({ event, col });
         placed = true;
         break;
       }
     }
+
     if (!placed) {
       colEnds.push(endMin);
       assigned.push({ event, col: colEnds.length - 1 });
@@ -51,70 +56,67 @@ function computeOverlapLayout(events: CalendarEvent[]): EventLayout[] {
   }
 
   return assigned.map(({ event, col }) => {
-    const s = timeToMinutes(event.startTime);
-    const e = timeToMinutes(event.endTime);
+    const start = timeToMinutes(event.startTime);
+    const end = timeToMinutes(event.endTime);
     const maxCol = assigned
-      .filter(({ event: o }) => {
-        const os = timeToMinutes(o.startTime);
-        const oe = timeToMinutes(o.endTime);
-        return os < e && oe > s;
+      .filter(({ event: other }) => {
+        const otherStart = timeToMinutes(other.startTime);
+        const otherEnd = timeToMinutes(other.endTime);
+        return otherStart < end && otherEnd > start;
       })
-      .reduce((max, { col: c }) => Math.max(max, c), 0);
+      .reduce((max, { col: nextCol }) => Math.max(max, nextCol), 0);
+
     return { event, col, totalCols: maxCol + 1 };
   });
 }
 
 export default function WeekGrid({ events, onEventClick }: WeekGridProps) {
   const { gridStart, gridEnd, showWeekends, startOfWeek, language } = useSettingsStore();
-  const ALL_DAY_LABELS = language === "en" ? DAY_LABELS_EN : DAY_LABELS_KO;
+  const dayLabels = language === "en" ? DAY_LABELS_EN : DAY_LABELS_KO;
 
-  // 표시할 요일 인덱스 목록 (0=월 … 6=일), startOfWeek 반영
   const baseDays = startOfWeek === "sun"
-    ? [6, 0, 1, 2, 3, 4, 5]   // 일~토
-    : [0, 1, 2, 3, 4, 5, 6];  // 월~일
+    ? [6, 0, 1, 2, 3, 4, 5]
+    : [0, 1, 2, 3, 4, 5, 6];
 
-  const visibleDays = showWeekends ? baseDays : baseDays.filter((d) => d !== 5 && d !== 6);
-
-  // 시간 행 배열
-  const hours = Array.from({ length: gridEnd - gridStart }, (_, i) => gridStart + i);
-
-  function getDayLabelColor(dayIndex: number): string {
-    if (dayIndex === 5) return "#2a4dd7"; // 토
-    if (dayIndex === 6) return "#e11d48"; // 일
-    return "var(--color-on-surface)";
-  }
-
+  const visibleDays = showWeekends ? baseDays : baseDays.filter((day) => day !== 5 && day !== 6);
+  const hours = Array.from({ length: gridEnd - gridStart }, (_, index) => gridStart + index);
   const colCount = visibleDays.length;
 
+  const getDayLabelColor = (dayIndex: number) => {
+    if (dayIndex === 5) return "#2a4dd7";
+    if (dayIndex === 6) return "#e11d48";
+    return "var(--color-on-surface)";
+  };
+
   return (
-    <div className="bg-surface-container-low rounded-3xl p-5 overflow-x-auto">
+    <div className="overflow-x-auto rounded-3xl bg-surface-container-low p-5">
       <div style={{ minWidth: `${56 + colCount * 80}px` }}>
-        {/* Day headers */}
-        <div className="grid mb-2" style={{ gridTemplateColumns: `56px repeat(${colCount}, 1fr)` }}>
+        <div className="mb-2 grid" style={{ gridTemplateColumns: `56px repeat(${colCount}, 1fr)` }}>
           <div />
           {visibleDays.map((dayIdx) => (
-            <div key={dayIdx} className="text-center pb-3">
+            <div key={dayIdx} className="pb-3 text-center">
               <p
                 className="text-sm font-extrabold tracking-wide"
-                style={{ fontFamily: "var(--font-manrope)", color: getDayLabelColor(dayIdx) }}
+                style={{
+                  fontFamily: "var(--font-manrope)",
+                  color: getDayLabelColor(dayIdx),
+                }}
               >
-                {ALL_DAY_LABELS[dayIdx]}
+                {dayLabels[dayIdx]}
               </p>
             </div>
           ))}
         </div>
 
-        {/* Time grid */}
         <div className="relative">
-          {/* Hour rows */}
           {hours.map((hour, rowIdx) => (
             <div
               key={hour}
               className="grid"
               style={{ height: SLOT_HEIGHT_PX, gridTemplateColumns: `56px repeat(${colCount}, 1fr)` }}
             >
-              <div className="flex items-start justify-end pr-3 -mt-2.5">
-                <span className="text-[10px] font-semibold text-on-surface-variant tabular-nums">
+              <div className="-mt-2.5 flex items-start justify-end pr-3">
+                <span className="tabular-nums text-[10px] font-semibold text-on-surface-variant">
                   {String(hour).padStart(2, "0")}:00
                 </span>
               </div>
@@ -132,17 +134,17 @@ export default function WeekGrid({ events, onEventClick }: WeekGridProps) {
             </div>
           ))}
 
-          {/* Event cards overlay */}
           <div
-            className="absolute inset-0 grid pointer-events-none"
+            className="pointer-events-none absolute inset-0 grid"
             style={{ gridTemplateColumns: `56px repeat(${colCount}, 1fr)` }}
           >
             <div />
             {visibleDays.map((dayIdx) => {
-              const dayEvents = events.filter((e) => e.dayOfWeek === dayIdx);
+              const dayEvents = events.filter((event) => event.dayOfWeek === dayIdx);
               const layouts = computeOverlapLayout(dayEvents);
+
               return (
-                <div key={dayIdx} className="relative pointer-events-auto">
+                <div key={dayIdx} className="pointer-events-auto relative">
                   {layouts.map(({ event, col, totalCols }) => (
                     <EventCard
                       key={event.id}

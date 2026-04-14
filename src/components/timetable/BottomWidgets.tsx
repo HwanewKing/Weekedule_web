@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarEvent, timeToMinutes } from "@/types/event";
 import { useCategoryStore, getCategoryStyle } from "@/lib/categoryStore";
+import { useSettingsStore } from "@/lib/settingsStore";
+import { timeToMinutes, type CalendarEvent } from "@/types/event";
 
 interface BottomWidgetsProps {
   events: CalendarEvent[];
@@ -10,98 +11,122 @@ interface BottomWidgetsProps {
   onGoalSave: (text: string) => void;
 }
 
-const WEEKLY_CAPACITY_MINUTES = 40 * 60; // 40시간
+const WEEKLY_CAPACITY_MINUTES = 40 * 60;
 
-export default function BottomWidgets({ events, weeklyGoal, onGoalSave }: BottomWidgetsProps) {
+export default function BottomWidgets({
+  events,
+  weeklyGoal,
+  onGoalSave,
+}: BottomWidgetsProps) {
+  const { language } = useSettingsStore();
   const [editing, setEditing] = useState(false);
   const [goalText, setGoalText] = useState(weeklyGoal);
-
   const { categories } = useCategoryStore();
+  const isKorean = language === "ko";
 
-  // 휴식 카테고리 ID 목록 (label이 "휴식"이거나 id가 "break")
   const breakIds = categories
-    .filter((c) => c.id === "break" || c.label === "휴식")
-    .map((c) => c.id);
+    .filter((category) => category.id === "break" || category.label === "휴식")
+    .map((category) => category.id);
 
-  // 총 스케줄 시간 (휴식 제외)
   const totalMin = events
-    .filter((e) => !breakIds.includes(e.category))
-    .reduce((acc, e) => acc + timeToMinutes(e.endTime) - timeToMinutes(e.startTime), 0);
+    .filter((event) => !breakIds.includes(event.category))
+    .reduce(
+      (acc, event) => acc + timeToMinutes(event.endTime) - timeToMinutes(event.startTime),
+      0
+    );
 
-  const capacityPct = Math.min(Math.round((totalMin / WEEKLY_CAPACITY_MINUTES) * 100), 100);
+  const capacityPct = Math.min(
+    Math.round((totalMin / WEEKLY_CAPACITY_MINUTES) * 100),
+    100
+  );
 
-  // 카테고리별 합산 (휴식 제외, 실제 시간 있는 것만)
   const categoryTotals = categories
-    .filter((c) => !breakIds.includes(c.id))
-    .map((c) => {
+    .filter((category) => !breakIds.includes(category.id))
+    .map((category) => {
       const mins = events
-        .filter((e) => e.category === c.id)
-        .reduce((acc, e) => acc + timeToMinutes(e.endTime) - timeToMinutes(e.startTime), 0);
-      return { cat: c, mins };
+        .filter((event) => event.category === category.id)
+        .reduce(
+          (acc, event) =>
+            acc + timeToMinutes(event.endTime) - timeToMinutes(event.startTime),
+          0
+        );
+
+      return { cat: category, mins };
     })
-    .filter((x) => x.mins > 0);
+    .filter((item) => item.mins > 0);
 
   const formatHours = (mins: number) => {
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    const hours = Math.floor(mins / 60);
+    const minutes = mins % 60;
+
+    if (isKorean) {
+      return minutes > 0 ? `${hours}시간 ${minutes}분` : `${hours}시간`;
+    }
+
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
   };
 
   return (
-    <div className="grid grid-cols-3 gap-5 mt-6">
-      {/* Weekly Goal */}
-      <div className="bg-surface-container-lowest rounded-3xl p-5 border border-outline-variant/10">
-        <div className="flex items-center justify-between mb-3">
+    <div className="mt-6 grid grid-cols-3 gap-5">
+      <div className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-5">
+        <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-tertiary">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 8v4l3 3" />
               </svg>
             </span>
-            <h5 className="text-sm font-bold text-on-surface">Weekly Goal</h5>
+            <h5 className="text-sm font-bold text-on-surface">
+              {isKorean ? "주간 목표" : "Weekly Goal"}
+            </h5>
           </div>
           <button
             onClick={() => {
-              if (editing) onGoalSave(goalText);
+              if (editing) {
+                onGoalSave(goalText);
+              }
               setEditing(!editing);
             }}
-            className="text-[10px] text-on-surface-variant hover:text-primary transition-colors font-semibold"
+            className="text-[10px] font-semibold text-on-surface-variant transition-colors hover:text-primary"
           >
-            {editing ? "저장" : "편집"}
+            {editing ? (isKorean ? "저장" : "Save") : (isKorean ? "편집" : "Edit")}
           </button>
         </div>
+
         {editing ? (
           <textarea
             value={goalText}
-            onChange={(e) => setGoalText(e.target.value)}
-            className="w-full text-sm text-on-surface-variant leading-relaxed bg-surface-container-low rounded-xl p-2 resize-none outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            onChange={(event) => setGoalText(event.target.value)}
+            className="w-full resize-none rounded-xl bg-surface-container-low p-2 text-sm leading-relaxed text-on-surface-variant outline-none transition-all focus:ring-2 focus:ring-primary/20"
             rows={3}
             autoFocus
           />
         ) : (
-          <p className="text-sm text-on-surface-variant leading-relaxed">
-            {weeklyGoal || "이번 주 목표를 설정해보세요."}
+          <p className="text-sm leading-relaxed text-on-surface-variant">
+            {weeklyGoal || (isKorean ? "이번 주 목표를 설정해 보세요." : "Set a goal for this week.")}
           </p>
         )}
       </div>
 
-      {/* Time Capacity */}
-      <div className="bg-surface-container-lowest rounded-3xl p-5 border border-outline-variant/10">
-        <div className="flex items-center gap-2 mb-3">
+      <div className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-5">
+        <div className="mb-3 flex items-center gap-2">
           <span className="text-primary">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
             </svg>
           </span>
-          <h5 className="text-sm font-bold text-on-surface">Time Capacity</h5>
+          <h5 className="text-sm font-bold text-on-surface">
+            {isKorean ? "시간 사용량" : "Time Capacity"}
+          </h5>
         </div>
 
         <div className="mb-3">
-          <div className="flex justify-between text-[10px] text-on-surface-variant mb-1.5">
-            <span>주간 스케줄</span>
+          <div className="mb-1.5 flex justify-between text-[10px] text-on-surface-variant">
+            <span>{isKorean ? "주간 사용량" : "Weekly load"}</span>
             <span className="font-bold text-primary">{capacityPct}%</span>
           </div>
-          <div className="w-full bg-surface-container-low h-2 rounded-full overflow-hidden">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-surface-container-low">
             <div
               className="h-full rounded-full bg-primary transition-all duration-700"
               style={{ width: `${capacityPct}%` }}
@@ -109,8 +134,10 @@ export default function BottomWidgets({ events, weeklyGoal, onGoalSave }: Bottom
           </div>
         </div>
 
-        <p className="text-[11px] text-on-surface-variant mb-3">
-          {formatHours(totalMin)} / 40h 스케줄됨
+        <p className="mb-3 text-[11px] text-on-surface-variant">
+          {isKorean
+            ? `${formatHours(totalMin)} / 40시간 사용 중`
+            : `${formatHours(totalMin)} / 40h used`}
         </p>
 
         <div className="flex flex-wrap gap-1.5">
@@ -119,7 +146,7 @@ export default function BottomWidgets({ events, weeklyGoal, onGoalSave }: Bottom
             return (
               <span
                 key={cat.id}
-                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
                 style={{ backgroundColor: styles.bg, color: styles.text }}
               >
                 {cat.label} {formatHours(mins)}
@@ -129,21 +156,26 @@ export default function BottomWidgets({ events, weeklyGoal, onGoalSave }: Bottom
         </div>
       </div>
 
-      {/* Stats */}
       <div
-        className="rounded-3xl p-5 text-on-primary flex flex-col justify-between"
+        className="flex flex-col justify-between rounded-3xl p-5 text-on-primary"
         style={{ background: "linear-gradient(135deg, #2a4dd7 0%, #4868f1 100%)" }}
       >
         <div>
-          <h5 className="text-sm font-bold opacity-90">이번 주 요약</h5>
+          <h5 className="text-sm font-bold opacity-90">
+            {isKorean ? "이번 주 요약" : "Weekly Summary"}
+          </h5>
           <p
-            className="text-3xl font-extrabold mt-2 leading-none"
+            className="mt-2 text-3xl font-extrabold leading-none"
             style={{ fontFamily: "var(--font-manrope)" }}
           >
             {events.length}
-            <span className="text-base font-semibold opacity-75 ml-1">개</span>
+            <span className="ml-1 text-base font-semibold opacity-75">
+              {isKorean ? "개" : ""}
+            </span>
           </p>
-          <p className="text-xs opacity-70 mt-1">등록된 일정</p>
+          <p className="mt-1 text-xs opacity-70">
+            {isKorean ? "등록된 일정" : "Scheduled events"}
+          </p>
         </div>
 
         <div className="mt-4 space-y-1.5">

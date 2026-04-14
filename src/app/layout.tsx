@@ -1,24 +1,35 @@
 import type { Metadata } from "next";
-import { Inter, Manrope } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import AuthGuard from "@/components/providers/AuthGuard";
 import ThemeProvider from "@/components/providers/ThemeProvider";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  variable: "--font-manrope",
-  display: "swap",
-});
+import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Weekedule — Orchestrated Flow",
-  description: "프리미엄 주간 스케줄 협업 앱",
+  metadataBase: new URL(siteConfig.url),
+  title: {
+    default: "Weekedule | 주간 일정과 공유 캘린더를 더 명확하게",
+    template: "%s | Weekedule",
+  },
+  description: siteConfig.description,
+  keywords: [...siteConfig.keywords],
+  applicationName: siteConfig.name,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Weekedule | 주간 일정과 공유 캘린더를 더 명확하게",
+    description: siteConfig.description,
+    url: siteConfig.url,
+    siteName: siteConfig.name,
+    locale: siteConfig.locale,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Weekedule | 주간 일정과 공유 캘린더를 더 명확하게",
+    description: siteConfig.description,
+  },
 };
 
 export default function RootLayout({
@@ -26,19 +37,26 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const adsenseClient =
+    process.env.NEXT_PUBLIC_ENABLE_ADSENSE === "true"
+      ? process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? "ca-pub-9920827976663604"
+      : null;
+
   return (
-    <html lang="ko" className={`${inter.variable} ${manrope.variable} h-full`}>
-      <head>
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9920827976663604"
-          crossOrigin="anonymous"
-        />
-      </head>
-      <body className="bg-surface text-on-surface font-sans antialiased flex h-full overflow-hidden">
+    <html lang="ko">
+      <body className="min-h-screen bg-surface text-on-surface font-sans antialiased">
         <ThemeProvider>
           <AuthGuard>{children}</AuthGuard>
         </ThemeProvider>
+        {adsenseClient ? (
+          <Script
+            id="adsense-script"
+            async
+            strategy="afterInteractive"
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
+            crossOrigin="anonymous"
+          />
+        ) : null}
       </body>
     </html>
   );
