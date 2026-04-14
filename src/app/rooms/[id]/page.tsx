@@ -240,8 +240,8 @@ export default function RoomDetailPage() {
         </div>
       </header>
 
-      <div className="shrink-0 px-8 pt-4">
-        <div className="flex gap-1">
+      <div className="shrink-0 px-4 pt-4 sm:px-6 md:px-8">
+        <div className="-mx-1 flex gap-1 overflow-x-auto px-1">
           {([
             ["overlap", t.tabOverlap],
             ["members", t.tabMembers],
@@ -249,7 +249,7 @@ export default function RoomDetailPage() {
             <button
               key={value}
               onClick={() => setTab(value)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition-all ${
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all ${
                 tab === value ? "bg-primary text-on-primary" : "text-on-surface-variant hover:bg-surface-container"
               }`}
             >
@@ -259,12 +259,12 @@ export default function RoomDetailPage() {
         </div>
       </div>
 
-      <main className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 md:px-8">
+      <main className="mobile-page-safe flex-1 overflow-y-auto px-4 py-5 sm:px-6 md:px-8">
         {tab === "overlap" ? (
           <>
             <div className="mb-6">
               <h3
-                className="text-3xl font-extrabold tracking-tight text-on-surface"
+                className="text-2xl font-extrabold tracking-tight text-on-surface sm:text-3xl"
                 style={{ fontFamily: "var(--font-manrope)" }}
               >
                 {t.overlapTitle}
@@ -335,7 +335,7 @@ export default function RoomDetailPage() {
 
                       <button
                         onClick={() => setExpandedMemberId(isExpanded ? null : member.id)}
-                        className="rounded-lg p-1 text-on-surface-variant opacity-0 transition-opacity group-hover:opacity-100 hover:bg-surface-container"
+                        className="rounded-lg p-1 text-on-surface-variant opacity-100 transition-opacity hover:bg-surface-container md:opacity-0 md:group-hover:opacity-100"
                         title={t.changeColor}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -349,7 +349,7 @@ export default function RoomDetailPage() {
 
                       <button
                         onClick={() => removeMember(room.id, member.id)}
-                        className="p-1 text-on-surface-variant opacity-0 transition-opacity group-hover:opacity-100 hover:text-error"
+                        className="p-1 text-on-surface-variant opacity-100 transition-opacity hover:text-error md:opacity-0 md:group-hover:opacity-100"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <line x1="18" y1="6" x2="6" y2="18" />
@@ -475,7 +475,7 @@ export default function RoomDetailPage() {
       ) : null}
 
       {confirmed ? (
-        <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-3 rounded-2xl bg-on-surface px-5 py-3 text-sm font-semibold text-inverse-on-surface shadow-ambient">
+        <div className="mobile-floating-safe fixed right-4 z-[60] flex items-center gap-3 rounded-2xl bg-on-surface px-4 py-3 text-sm font-semibold text-inverse-on-surface shadow-ambient sm:right-6 sm:px-5">
           <span className="text-[#4ade80]">OK</span>
           {confirmed.label}
         </div>

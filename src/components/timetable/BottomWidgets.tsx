@@ -67,7 +67,7 @@ export default function BottomWidgets({
   };
 
   return (
-    <div className="mt-6 grid grid-cols-3 gap-5">
+    <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       <div className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-5">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -157,7 +157,7 @@ export default function BottomWidgets({
       </div>
 
       <div
-        className="flex flex-col justify-between rounded-3xl p-5 text-on-primary"
+        className="flex flex-col justify-between rounded-3xl p-5 text-on-primary md:col-span-2 xl:col-span-1"
         style={{ background: "linear-gradient(135deg, #2a4dd7 0%, #4868f1 100%)" }}
       >
         <div>

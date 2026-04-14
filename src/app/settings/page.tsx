@@ -36,12 +36,12 @@ function Card({ title, desc, children }: { title: string; desc?: string; childre
 
 function Row({ label, desc, children }: { label: string; desc?: string; children?: ReactNode }) {
   return (
-    <div className="flex items-center gap-4 border-t border-outline-variant/10 px-5 py-4 first:border-t-0">
+    <div className="flex flex-col items-start gap-3 border-t border-outline-variant/10 px-5 py-4 first:border-t-0 sm:flex-row sm:items-center sm:gap-4">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-on-surface">{label}</p>
         {desc ? <p className="mt-0.5 text-xs text-on-surface-variant">{desc}</p> : null}
       </div>
-      {children ? <div className="shrink-0">{children}</div> : null}
+      {children ? <div className="w-full shrink-0 sm:w-auto">{children}</div> : null}
     </div>
   );
 }
@@ -169,13 +169,13 @@ export default function SettingsPage() {
         </h2>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        <nav className="flex w-48 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-outline-variant/10 px-3 py-5">
+      <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
+        <nav className="flex w-full shrink-0 gap-2 overflow-x-auto border-b border-outline-variant/10 px-4 py-3 md:w-48 md:flex-col md:gap-0.5 md:overflow-y-auto md:border-b-0 md:border-r md:px-3 md:py-5">
           {(["profile", "timetable", "display", "notifications", "about"] as Section[]).map((section) => (
             <button
               key={section}
               onClick={() => setActiveSection(section)}
-              className={`rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+              className={`shrink-0 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors ${
                 activeSection === section
                   ? "bg-surface-container-lowest text-primary shadow-ambient"
                   : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
@@ -186,8 +186,8 @@ export default function SettingsPage() {
           ))}
         </nav>
 
-        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 md:px-8">
-          <div className="flex max-w-lg flex-col gap-6">
+        <main className="mobile-page-safe flex-1 overflow-y-auto px-4 py-5 sm:px-6 md:px-8">
+          <div className="flex max-w-2xl flex-col gap-6">
             {activeSection === "profile" ? (
               <>
                 <div>
@@ -212,7 +212,7 @@ export default function SettingsPage() {
                 <Card title={isKo ? "프로필" : "Profile"}>
                   <div className="px-5 py-4">
                     <label className="label-field">{isKo ? "표시 이름" : "Display name"}</label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
                       <input
                         value={nameInput}
                         onChange={(event) => {
@@ -396,7 +396,7 @@ export default function SettingsPage() {
                 </div>
 
                 <Card title={isKo ? "앱 테마" : "App theme"}>
-                  <div className="grid grid-cols-3 gap-3 p-4">
+                  <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-3">
                     {(["light", "dark", "system"] as const).map((value) => (
                       <button
                         key={value}

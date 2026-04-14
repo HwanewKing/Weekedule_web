@@ -124,14 +124,14 @@ export default function RoomsPage() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-6 md:px-8">
+      <main className="mobile-page-safe flex-1 overflow-y-auto px-4 py-8 sm:px-6 md:px-8">
         <section className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="max-w-xl">
             <span className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-primary">
               {t.eyebrow}
             </span>
             <h3
-              className="mb-3 text-4xl font-extrabold leading-tight tracking-tight text-on-surface"
+              className="mb-3 text-3xl font-extrabold leading-tight tracking-tight text-on-surface sm:text-4xl"
               style={{ fontFamily: "var(--font-manrope)" }}
             >
               {t.title}

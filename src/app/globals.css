@@ -144,6 +144,7 @@ body {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
 }
 
 /* ===== Scrollbar ===== */
@@ -227,4 +228,27 @@ body {
 }
 .field::placeholder {
   color: color-mix(in srgb, var(--color-on-surface-variant) 50%, transparent);
+}
+
+/* ===== Mobile helpers ===== */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mobile-page-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem);
+}
+
+.mobile-floating-safe {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 4.5rem);
+}
+
+@media (min-width: 768px) {
+  .mobile-page-safe {
+    padding-bottom: 2rem;
+  }
+
+  .mobile-floating-safe {
+    bottom: 1.5rem;
+  }
 }

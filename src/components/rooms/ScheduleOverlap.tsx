@@ -224,7 +224,7 @@ export default function ScheduleOverlap({
   ].join("  ");
 
   return (
-    <div className="flex flex-col gap-6 pb-28">
+    <div className="flex flex-col gap-6 pb-32 md:pb-28">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <div className="rounded-3xl bg-surface-container-low p-5 md:col-span-3">
           <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
@@ -276,14 +276,14 @@ export default function ScheduleOverlap({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-3xl bg-surface-container-lowest p-6">
-        <div className="min-w-[600px]">
-          <div className="mb-3 grid grid-cols-[56px_repeat(7,1fr)]">
+      <div className="overflow-x-auto rounded-3xl bg-surface-container-lowest p-4 sm:p-6">
+        <div className="min-w-[520px] sm:min-w-[600px]">
+          <div className="mb-3 grid grid-cols-[44px_repeat(7,minmax(52px,1fr))] sm:grid-cols-[56px_repeat(7,1fr)]">
             <div />
             {t.days.map((label, index) => (
               <div key={index} className="text-center">
                 <span
-                  className="text-sm font-extrabold"
+                  className="text-xs font-extrabold sm:text-sm"
                   style={{
                     fontFamily: "var(--font-manrope)",
                     color:
@@ -302,8 +302,8 @@ export default function ScheduleOverlap({
 
           <div className="flex flex-col gap-1.5">
             {HOURS.map((hour) => (
-              <div key={hour} className="grid grid-cols-[56px_repeat(7,1fr)] items-center gap-1.5">
-                <div className="pr-3 text-right">
+              <div key={hour} className="grid grid-cols-[44px_repeat(7,minmax(52px,1fr))] items-center gap-1 sm:grid-cols-[56px_repeat(7,1fr)] sm:gap-1.5">
+                <div className="pr-2 text-right sm:pr-3">
                   <span className="tabular-nums text-[10px] font-semibold text-on-surface-variant">
                     {String(hour).padStart(2, "0")}:00
                   </span>
@@ -325,7 +325,7 @@ export default function ScheduleOverlap({
                       onMouseLeave={handleMouseLeave}
                       style={getHeatStyle(ratio, heatmapColor)}
                       className={[
-                        "relative h-10 rounded-xl transition-all duration-150",
+                        "relative h-9 rounded-xl transition-all duration-150 sm:h-10",
                         isSelected
                           ? "z-10 scale-105 ring-[3px] ring-primary ring-offset-2 ring-offset-surface-container-lowest"
                           : isCancelling
@@ -412,9 +412,9 @@ export default function ScheduleOverlap({
       ) : null}
 
       {selectedKeys.size > 0 || cancellingKeys.size > 0 ? (
-        <div className="fixed bottom-6 left-1/2 z-50 w-[calc(100%-10rem)] max-w-3xl -translate-x-1/2">
-          <div className="glass-nav flex items-center justify-between gap-4 rounded-3xl border border-white/30 px-5 py-4 shadow-ambient">
-            <div className="shrink-0 flex items-center gap-3">
+        <div className="mobile-floating-safe fixed left-4 right-4 z-50 md:left-1/2 md:right-auto md:w-[calc(100%-10rem)] md:max-w-3xl md:-translate-x-1/2">
+          <div className="glass-nav flex flex-col gap-4 rounded-3xl border border-white/30 px-4 py-4 shadow-ambient sm:px-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -423,7 +423,7 @@ export default function ScheduleOverlap({
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-bold leading-tight text-on-surface">
                   {selectedKeys.size > 0 && cancellingKeys.size > 0
                     ? t.addAndCancel(selectedKeys.size, cancellingKeys.size)
@@ -431,11 +431,11 @@ export default function ScheduleOverlap({
                       ? t.slotSelected(selectedKeys.size)
                       : t.cancelPending(cancellingKeys.size)}
                 </p>
-                <p className="mt-0.5 text-[10px] text-on-surface-variant">{summary}</p>
+                <p className="mt-0.5 truncate text-[10px] text-on-surface-variant">{summary}</p>
               </div>
             </div>
 
-            <div className="min-w-0 flex flex-1 items-center gap-1.5 overflow-x-auto px-2">
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto md:px-2">
               {selectedKeys.size > 0 ? (
                 commonFreeMembers.length > 0 ? (
                   <>
@@ -458,7 +458,7 @@ export default function ScheduleOverlap({
               )}
             </div>
 
-            <div className="shrink-0 flex gap-2">
+            <div className="flex w-full shrink-0 flex-col-reverse gap-2 sm:w-auto sm:flex-row">
               <button
                 onClick={() => {
                   setSelectedKeys(new Set());

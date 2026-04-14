@@ -216,7 +216,7 @@ function NotificationItem({
   return (
     <div
       onClick={onRead}
-      className={`relative flex cursor-pointer gap-4 px-5 py-4 transition-colors hover:bg-surface-container-low ${
+      className={`relative flex cursor-pointer gap-3 px-4 py-4 transition-colors hover:bg-surface-container-low sm:gap-4 sm:px-5 ${
         !notification.read ? "bg-primary-fixed/30" : ""
       }`}
     >
@@ -230,7 +230,7 @@ function NotificationItem({
         {config.icon}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <p className={`text-sm leading-snug ${notification.read ? "text-on-surface" : "font-semibold text-on-surface"}`}>
             {getBody(notification, t)}
           </p>
@@ -334,8 +334,8 @@ export default function NotificationsPage() {
         ) : null}
       </div>
 
-      <main className="flex max-w-2xl flex-col gap-6 px-8 py-6">
-        <div className="flex items-end justify-between">
+      <main className="mobile-page-safe flex max-w-3xl flex-col gap-6 px-4 py-6 sm:px-6 md:px-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
               {t.title}
@@ -346,7 +346,7 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-2">
           {([
             ["all", t.filterAll],
             ["unread", t.filterUnread],

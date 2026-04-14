@@ -131,9 +131,9 @@ export default function TimetablePage() {
         </div>
       </header>
 
-      <div className="shrink-0 px-8 pb-4 pt-6">
+      <div className="shrink-0 px-4 pb-4 pt-6 sm:px-6 md:px-8">
         <h3
-          className="text-4xl font-extrabold tracking-tight text-on-surface"
+          className="text-3xl font-extrabold tracking-tight text-on-surface sm:text-4xl"
           style={{ fontFamily: "var(--font-manrope)" }}
         >
           {t.title}
@@ -141,7 +141,7 @@ export default function TimetablePage() {
         <p className="mt-1 text-sm text-on-surface-variant">{t.subtitle}</p>
       </div>
 
-      <main className="flex-1 overflow-y-auto px-4 pb-8 sm:px-6 md:px-8">
+      <main className="mobile-page-safe flex-1 overflow-y-auto px-4 sm:px-6 md:px-8">
         <WeekGrid events={events} onEventClick={openEdit} />
         <BottomWidgets
           events={events}

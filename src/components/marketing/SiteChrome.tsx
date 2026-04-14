@@ -28,7 +28,7 @@ export function SiteHeader() {
             >
               Weekedule
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="hidden text-xs text-slate-500 sm:block">
               일정 관리와 생활 루틴을 돕는 주간 계획 서비스
             </p>
           </div>
@@ -63,6 +63,19 @@ export function SiteHeader() {
             무료로 시작
           </Link>
         </div>
+      </div>
+      <div className="border-t border-slate-200/70 md:hidden">
+        <nav className="mx-auto flex w-full max-w-6xl gap-2 overflow-x-auto px-5 py-2.5 sm:px-6">
+          {primaryLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-200 hover:text-slate-950"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
       </div>
     </header>
   );

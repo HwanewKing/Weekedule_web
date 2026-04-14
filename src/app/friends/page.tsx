@@ -269,7 +269,7 @@ export default function FriendsPage() {
         </button>
       </div>
 
-      <main className="flex max-w-2xl flex-col gap-6 px-8 py-6">
+      <main className="mobile-page-safe flex max-w-3xl flex-col gap-6 px-4 py-6 sm:px-6 md:px-8">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
             {t.title}
@@ -300,7 +300,7 @@ export default function FriendsPage() {
 
             <div>
               <label className="label-field">{t.emailLabel}</label>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <input
                   type="email"
                   value={emailInput}
@@ -349,7 +349,7 @@ export default function FriendsPage() {
                   {t.inviteLoading}
                 </div>
               ) : inviteLink ? (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <code className="flex-1 truncate rounded-xl bg-surface-container px-3 py-2.5 font-mono text-xs text-on-surface">
                     {inviteLink}
                   </code>
@@ -393,7 +393,7 @@ export default function FriendsPage() {
               {pendingIn.map((relation, index) => (
                 <div
                   key={relation.id}
-                  className={`flex items-center gap-3 px-5 py-3.5 ${
+                  className={`flex flex-col items-start gap-3 px-5 py-3.5 sm:flex-row sm:items-center ${
                     index > 0 ? "border-t border-outline-variant/10" : ""
                   }`}
                 >
@@ -404,7 +404,7 @@ export default function FriendsPage() {
                     <p className="text-sm font-semibold text-on-surface">{relation.from.name}</p>
                     <p className="text-[11px] text-on-surface-variant">{relation.from.email}</p>
                   </div>
-                  <div className="flex shrink-0 gap-1.5">
+                  <div className="flex w-full shrink-0 gap-1.5 sm:w-auto">
                     <button onClick={() => acceptRequest(relation.id)} className="btn-gradient rounded-full px-3 py-1.5 text-xs font-bold text-on-primary">
                       {t.accept}
                     </button>
@@ -430,7 +430,7 @@ export default function FriendsPage() {
               {pendingOut.map((relation, index) => (
                 <div
                   key={relation.id}
-                  className={`flex items-center gap-3 px-5 py-3.5 ${
+                  className={`flex flex-col items-start gap-3 px-5 py-3.5 sm:flex-row sm:items-center ${
                     index > 0 ? "border-t border-outline-variant/10" : ""
                   }`}
                 >
@@ -502,7 +502,7 @@ export default function FriendsPage() {
                       className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold transition-all ${
                         isConfirm
                           ? "bg-error text-on-error opacity-100"
-                          : "border border-outline-variant/20 text-on-surface-variant opacity-0 group-hover:opacity-100 hover:bg-error/5 hover:text-error"
+                          : "border border-outline-variant/20 text-on-surface-variant opacity-100 hover:bg-error/5 hover:text-error md:opacity-0 md:group-hover:opacity-100"
                       }`}
                     >
                       {isConfirm ? t.removeConfirm : t.remove}

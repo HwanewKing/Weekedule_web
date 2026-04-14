@@ -89,8 +89,8 @@ export default function WeekGrid({ events, onEventClick }: WeekGridProps) {
   };
 
   return (
-    <div className="overflow-x-auto rounded-3xl bg-surface-container-low p-5">
-      <div style={{ minWidth: `${56 + colCount * 80}px` }}>
+    <div className="overflow-x-auto rounded-3xl bg-surface-container-low p-3 sm:p-5">
+      <div style={{ minWidth: `${56 + colCount * 72}px` }}>
         <div className="mb-2 grid" style={{ gridTemplateColumns: `56px repeat(${colCount}, 1fr)` }}>
           <div />
           {visibleDays.map((dayIdx) => (

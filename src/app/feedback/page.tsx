@@ -89,14 +89,14 @@ export default function FeedbackPage() {
         </h2>
       </header>
 
-      <div className="shrink-0 px-8 pb-4 pt-6">
-        <h3 className="text-4xl font-extrabold tracking-tight text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
+      <div className="shrink-0 px-4 pb-4 pt-6 sm:px-6 md:px-8">
+        <h3 className="text-3xl font-extrabold tracking-tight text-on-surface sm:text-4xl" style={{ fontFamily: "var(--font-manrope)" }}>
           {t.title}
         </h3>
         <p className="mt-1 text-sm text-on-surface-variant">{t.subtitle}</p>
       </div>
 
-      <main className="flex-1 overflow-y-auto px-4 pb-8 sm:px-6 md:px-8">
+      <main className="mobile-page-safe flex-1 overflow-y-auto px-4 sm:px-6 md:px-8">
         <div className="flex max-w-lg flex-col gap-5">
           <div className="flex flex-col gap-3 rounded-2xl bg-surface-container-low p-5">
             <p className="text-xs font-semibold text-on-surface-variant">{t.typeLabel}</p>
