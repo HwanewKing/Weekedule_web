@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/lib/authStore";
 import { useFriendStore } from "@/lib/friendStore";
 import { useSettingsStore } from "@/lib/settingsStore";
@@ -36,7 +36,9 @@ const T = {
     guestDescription: "친구를 추가하고 함께 일정을 공유해 보세요.",
     login: "로그인",
     signup: "회원가입",
-    inviteHost: "weekedule.app/friends/invite?ref=",
+    inviteLoading: "초대 링크를 준비하는 중...",
+    inviteError: "초대 링크를 만들지 못했어요. 다시 시도해 주세요.",
+    inviteCreate: "초대 링크 다시 만들기",
   },
   en: {
     title: "Friends",
@@ -67,13 +69,23 @@ const T = {
     guestDescription: "Add friends and share schedules together.",
     login: "Log in",
     signup: "Sign Up",
-    inviteHost: "weekedule.app/friends/invite?ref=",
+    inviteLoading: "Preparing your invite link...",
+    inviteError: "Could not create the invite link. Please try again.",
+    inviteCreate: "Create Invite Link Again",
   },
 } as const;
 
-function generateFriendInviteLink(userId: string, prefix: string) {
-  const token = btoa(`friend:${userId}:${Date.now()}`).replace(/=/g, "").slice(0, 16);
-  return `${prefix}${token}`;
+async function requestFriendInviteLink(origin: string) {
+  const res = await fetch("/api/friends/invite", { method: "POST" });
+  const data = await res.json();
+
+  if (!res.ok || !data.token) {
+    return { error: data.error as string | undefined };
+  }
+
+  return {
+    inviteLink: `${origin}/friends/invite?ref=${encodeURIComponent(data.token)}`,
+  };
 }
 
 export default function FriendsPage() {
@@ -96,6 +108,109 @@ export default function FriendsPage() {
   const [sending, setSending] = useState(false);
   const [copied, setCopied] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState("");
+  const [inviteLinkLoading, setInviteLinkLoading] = useState(false);
+  const [inviteLinkError, setInviteLinkError] = useState("");
+
+  const generateInviteLink = async () => {
+    setInviteLinkLoading(true);
+    setInviteLinkError("");
+
+    try {
+      const result = await requestFriendInviteLink(window.location.origin);
+
+      if (!result.inviteLink) {
+        setInviteLinkError(result.error ?? t.inviteError);
+        setInviteLink("");
+        return null;
+      }
+
+      setInviteLink(result.inviteLink);
+      return result.inviteLink;
+    } catch {
+      setInviteLinkError(t.inviteError);
+      setInviteLink("");
+      return null;
+    } finally {
+      setInviteLinkLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!showAddPanel || inviteLink || !inviteLinkLoading) return;
+
+    let cancelled = false;
+
+    const loadInviteLink = async () => {
+      try {
+        const result = await requestFriendInviteLink(window.location.origin);
+
+        if (cancelled) return;
+
+        if (result.inviteLink) {
+          setInviteLink(result.inviteLink);
+          setInviteLinkError("");
+        } else {
+          setInviteLink("");
+          setInviteLinkError(result.error ?? t.inviteError);
+        }
+      } catch {
+        if (cancelled) return;
+        setInviteLink("");
+        setInviteLinkError(t.inviteError);
+      } finally {
+        if (!cancelled) {
+          setInviteLinkLoading(false);
+        }
+      }
+    };
+
+    void loadInviteLink();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showAddPanel, inviteLink, inviteLinkLoading, t.inviteError]);
+
+  const handleSendRequest = async () => {
+    if (!emailInput.trim() || !user) return;
+
+    setSending(true);
+    setSendResult(null);
+
+    const result = await sendRequest(emailInput.trim());
+    setSendResult({
+      ok: result.success,
+      msg: result.success ? t.successMsg : result.error ?? "Error",
+    });
+
+    if (result.success) setEmailInput("");
+    setSending(false);
+  };
+
+  const handleCopy = async () => {
+    const nextInviteLink =
+      inviteLink || (!inviteLinkLoading ? await generateInviteLink() : null);
+
+    if (!nextInviteLink) return;
+
+    try {
+      await navigator.clipboard.writeText(nextInviteLink);
+    } catch {
+      // noop
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleRemove = (relationId: string) => {
+    if (confirmRemoveId === relationId) {
+      removeFriend(relationId);
+      setConfirmRemoveId(null);
+    } else {
+      setConfirmRemoveId(relationId);
+    }
+  };
 
   if (isGuest) {
     return (
@@ -127,43 +242,6 @@ export default function FriendsPage() {
     );
   }
 
-  const inviteLink = generateFriendInviteLink(user?.id ?? "", t.inviteHost);
-
-  const handleSendRequest = async () => {
-    if (!emailInput.trim() || !user) return;
-
-    setSending(true);
-    setSendResult(null);
-
-    const result = await sendRequest(emailInput.trim());
-    setSendResult({
-      ok: result.success,
-      msg: result.success ? t.successMsg : result.error ?? "Error",
-    });
-
-    if (result.success) setEmailInput("");
-    setSending(false);
-  };
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(inviteLink);
-    } catch {
-      // noop
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleRemove = (relationId: string) => {
-    if (confirmRemoveId === relationId) {
-      removeFriend(relationId);
-      setConfirmRemoveId(null);
-    } else {
-      setConfirmRemoveId(relationId);
-    }
-  };
-
   if (!user) return null;
 
   return (
@@ -176,6 +254,8 @@ export default function FriendsPage() {
           onClick={() => {
             setShowAddPanel(true);
             setSendResult(null);
+            setInviteLinkError("");
+            if (!inviteLink) setInviteLinkLoading(true);
           }}
           className="btn-gradient flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold text-on-primary"
         >
@@ -201,14 +281,16 @@ export default function FriendsPage() {
           <div className="flex flex-col gap-4 rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-5">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-on-surface">{t.addPanel}</h3>
-              <button
-                onClick={() => {
-                  setShowAddPanel(false);
-                  setSendResult(null);
-                  setEmailInput("");
-                }}
-                className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-container transition-colors hover:bg-surface-container-high"
-              >
+                <button
+                  onClick={() => {
+                    setShowAddPanel(false);
+                    setSendResult(null);
+                    setEmailInput("");
+                    setInviteLinkError("");
+                    setInviteLinkLoading(false);
+                  }}
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-container transition-colors hover:bg-surface-container-high"
+                >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
@@ -262,19 +344,39 @@ export default function FriendsPage() {
 
             <div>
               <label className="label-field">{t.inviteLabel}</label>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 truncate rounded-xl bg-surface-container px-3 py-2.5 font-mono text-xs text-on-surface">
-                  {inviteLink}
-                </code>
+              {inviteLinkLoading ? (
+                <div className="rounded-xl bg-surface-container px-3 py-2.5 text-xs text-on-surface-variant">
+                  {t.inviteLoading}
+                </div>
+              ) : inviteLink ? (
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 truncate rounded-xl bg-surface-container px-3 py-2.5 font-mono text-xs text-on-surface">
+                    {inviteLink}
+                  </code>
+                  <button
+                    onClick={handleCopy}
+                    className={`shrink-0 rounded-xl px-3 py-2.5 text-xs font-bold transition-all ${
+                      copied
+                        ? "bg-[#dcfce7] text-[#16a34a]"
+                        : "btn-gradient text-on-primary"
+                    }`}
+                  >
+                    {copied ? t.copied : t.copy}
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={handleCopy}
-                  className={`shrink-0 rounded-xl px-3 py-2.5 text-xs font-bold transition-all ${
-                    copied ? "bg-[#dcfce7] text-[#16a34a]" : "btn-gradient text-on-primary"
-                  }`}
+                  onClick={() => void generateInviteLink()}
+                  className="text-xs font-semibold text-primary hover:underline"
                 >
-                  {copied ? t.copied : t.copy}
+                  {t.inviteCreate}
                 </button>
-              </div>
+              )}
+              {inviteLinkError ? (
+                <p className="mt-2 rounded-xl border border-error/20 bg-error/5 px-3 py-2 text-xs font-semibold text-error">
+                  {inviteLinkError}
+                </p>
+              ) : null}
             </div>
           </div>
         ) : null}

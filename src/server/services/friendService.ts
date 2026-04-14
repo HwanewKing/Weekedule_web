@@ -1,27 +1,56 @@
 import { db } from "@/server/db";
 import { createNotification } from "./notificationService";
 
-export async function sendFriendRequest(requesterId: string, toEmail: string) {
-  const addressee = await db.user.findUnique({ where: { email: toEmail } });
-  if (!addressee) return { error: "해당 이메일의 사용자를 찾을 수 없어요" };
-  if (addressee.id === requesterId) return { error: "자신에게 친구 요청을 보낼 수 없어요" };
+async function notifyFriendAccepted(requesterId: string, accepterId: string) {
+  const accepter = await db.user.findUnique({ where: { id: accepterId } });
+
+  await createNotification(requesterId, {
+    type: "meeting_confirmed",
+    title: "친구 요청 수락",
+    body: `${accepter?.name}님이 친구 요청을 수락했어요`,
+    meta: { fromName: accepter?.name },
+  });
+}
+
+async function createFriendRequest(requesterId: string, addresseeId: string) {
+  if (addresseeId === requesterId) {
+    return { error: "자신에게 친구 요청을 보낼 수 없어요", code: "self" as const };
+  }
 
   const existing = await db.friendRelation.findFirst({
     where: {
       OR: [
-        { requesterId, addresseeId: addressee.id },
-        { requesterId: addressee.id, addresseeId: requesterId },
+        { requesterId, addresseeId },
+        { requesterId: addresseeId, addresseeId: requesterId },
       ],
     },
   });
-  if (existing) return { error: "이미 친구 관계이거나 요청이 진행 중이에요" };
+
+  if (existing) {
+    if (existing.status === "accepted") {
+      return { error: "이미 친구 관계예요", code: "already" as const };
+    }
+
+    if (existing.requesterId === requesterId) {
+      return { error: "이미 친구 요청을 보냈어요", code: "pending" as const };
+    }
+
+    const updated = await db.friendRelation.update({
+      where: { id: existing.id },
+      data: { status: "accepted" },
+    });
+
+    await notifyFriendAccepted(existing.requesterId, requesterId);
+
+    return { relation: updated, autoAccepted: true as const };
+  }
 
   const requester = await db.user.findUnique({ where: { id: requesterId } });
   const relation = await db.friendRelation.create({
-    data: { requesterId, addresseeId: addressee.id },
+    data: { requesterId, addresseeId },
   });
 
-  await createNotification(addressee.id, {
+  await createNotification(addresseeId, {
     type: "friend_request",
     title: "친구 요청",
     body: `${requester?.name}님이 친구 요청을 보냈어요`,
@@ -30,6 +59,27 @@ export async function sendFriendRequest(requesterId: string, toEmail: string) {
   });
 
   return { relation };
+}
+
+export async function sendFriendRequest(requesterId: string, toEmail: string) {
+  const addressee = await db.user.findUnique({ where: { email: toEmail } });
+  if (!addressee) {
+    return { error: "해당 이메일의 사용자를 찾을 수 없어요", code: "not_found" as const };
+  }
+
+  return createFriendRequest(requesterId, addressee.id);
+}
+
+export async function sendFriendRequestToUser(
+  requesterId: string,
+  addresseeId: string
+) {
+  const addressee = await db.user.findUnique({ where: { id: addresseeId } });
+  if (!addressee) {
+    return { error: "초대 사용자를 찾을 수 없어요", code: "not_found" as const };
+  }
+
+  return createFriendRequest(requesterId, addressee.id);
 }
 
 export async function respondToRequest(
@@ -52,13 +102,7 @@ export async function respondToRequest(
     data: { status: "accepted" },
   });
 
-  const accepter = await db.user.findUnique({ where: { id: userId } });
-  await createNotification(relation.requesterId, {
-    type: "meeting_confirmed",
-    title: "친구 요청 수락",
-    body: `${accepter?.name}님이 친구 요청을 수락했어요`,
-    meta: { fromName: accepter?.name },
-  });
+  await notifyFriendAccepted(relation.requesterId, userId);
 
   return { relation: updated };
 }

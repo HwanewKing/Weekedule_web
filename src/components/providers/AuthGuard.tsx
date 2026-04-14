@@ -12,6 +12,7 @@ const ALWAYS_PUBLIC = [
   "/about",
   "/contact",
   "/editorial-policy",
+  "/friends/invite",
   "/guides",
   "/privacy",
   "/terms",
