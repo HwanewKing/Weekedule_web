@@ -13,23 +13,26 @@ import {
 
 const T = {
   ko: {
-    selectedMembers: "선택된 멤버",
-    heatmapLegend: "히트맵 범례",
-    free: "여유",
-    busy: "혼잡",
-    confirmedSlot: "확정 시간",
-    available: "가능",
-    busyLabel: "바쁨",
-    noMembers: "멤버 정보 없음",
-    addAndCancel: (addCount: number, cancelCount: number) => `${addCount}개 추가 · ${cancelCount}개 취소`,
-    slotSelected: (count: number) => `${count}개 시간대 선택됨`,
-    cancelPending: (count: number) => `${count}개 시간대 취소 예정`,
-    allAvailable: "모두 가능한 멤버:",
-    noCommon: "공통으로 가능한 멤버가 없어요.",
-    cancellingConfirmed: "확정된 시간대를 취소할 예정이에요.",
-    cancel: "취소",
-    confirm: "확정",
-    days: ["월", "화", "수", "목", "금", "토", "일"],
+    selectedMembers: "Selected Members",
+    heatmapLegend: "Heatmap Legend",
+    free: "Free",
+    busy: "Busy",
+    confirmedSlot: "Confirmed Slot",
+    available: "Available",
+    busyLabel: "Busy",
+    noMembers: "No member info",
+    addAndCancel: (addCount: number, cancelCount: number) =>
+      `${addCount} add / ${cancelCount} cancel`,
+    slotSelected: (count: number) =>
+      `${count} slot${count !== 1 ? "s" : ""} selected`,
+    cancelPending: (count: number) =>
+      `${count} slot${count !== 1 ? "s" : ""} pending cancel`,
+    allAvailable: "All available:",
+    noCommon: "No common available members.",
+    cancellingConfirmed: "Confirmed slots will be cancelled.",
+    cancel: "Cancel",
+    confirm: "Confirm",
+    days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
   },
   en: {
     selectedMembers: "Selected Members",
@@ -40,9 +43,12 @@ const T = {
     available: "Available",
     busyLabel: "Busy",
     noMembers: "No member info",
-    addAndCancel: (addCount: number, cancelCount: number) => `${addCount} add · ${cancelCount} cancel`,
-    slotSelected: (count: number) => `${count} slot${count !== 1 ? "s" : ""} selected`,
-    cancelPending: (count: number) => `${count} slot${count !== 1 ? "s" : ""} pending cancel`,
+    addAndCancel: (addCount: number, cancelCount: number) =>
+      `${addCount} add / ${cancelCount} cancel`,
+    slotSelected: (count: number) =>
+      `${count} slot${count !== 1 ? "s" : ""} selected`,
+    cancelPending: (count: number) =>
+      `${count} slot${count !== 1 ? "s" : ""} pending cancel`,
     allAvailable: "All available:",
     noCommon: "No common available members.",
     cancellingConfirmed: "Confirmed slots will be cancelled.",

@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import InviteModal from "@/components/rooms/InviteModal";
-import RoomPersonalizeModal from "@/components/rooms/RoomPersonalizeModal";
 import RoomIconEl from "@/components/rooms/RoomIcon";
+import RoomPersonalizeModal from "@/components/rooms/RoomPersonalizeModal";
 import ScheduleOverlap from "@/components/rooms/ScheduleOverlap";
 import { useAuthStore } from "@/lib/authStore";
 import { useRoomPreferencesStore } from "@/lib/roomPreferencesStore";
@@ -21,41 +21,42 @@ import {
 
 const T = {
   ko: {
-    notFound: "룸을 찾을 수 없어요.",
-    backToList: "목록으로",
-    memberCount: (count: number) => `${count}명`,
-    tabOverlap: "겹치는 시간",
-    tabMembers: "팀 관리",
+    notFound: "Room not found.",
+    backToList: "Back to list",
+    memberCount: (count: number) => `${count} member${count !== 1 ? "s" : ""}`,
+    tabOverlap: "Schedule Overlap",
+    tabMembers: "Team",
     overlapTitle: "Schedule Overlap",
     overlapDesc:
-      "겹치는 시간을 확인하고 가장 좋은 시간을 확정해보세요. 셀을 누르면 룸 일정이 확정됩니다.",
-    noMembers: "멤버가 없어요",
-    noMembersDesc: "먼저 팀 관리 탭에서 멤버를 초대해보세요.",
-    goInvite: "멤버 초대",
-    teamTitle: "팀 관리",
-    teamDesc: "룸 이름 수정, 멤버 색상 관리, 공용 설정을 할 수 있어요.",
-    eventsRegistered: (count: number) => `${count}개 일정`,
-    noMembersYet: "아직 멤버가 없어요.",
-    inviteBtn: "멤버 초대",
-    roomNameLabel: "룸 이름",
-    roomNamePlaceholder: "룸 이름 입력",
-    saveName: "이름 저장",
-    personalManage: "내 룸 관리",
-    heatmapTitle: "히트맵 색상",
-    heatmapDesc: "겹치는 시간 히트맵의 공용 색상을 선택하세요.",
-    roomSettings: "룸 설정",
-    deleteRoom: "룸 삭제",
-    deleteTitle: "이 룸을 삭제할까요?",
+      "Review overlapping schedules and confirm the best times for the room.",
+    noMembers: "No members yet",
+    noMembersDesc: "Invite members from the Team tab first.",
+    goInvite: "Invite Members",
+    teamTitle: "Team Management",
+    teamDesc: "Update the room name, member colors, and shared settings.",
+    eventsRegistered: (count: number) => `${count} event${count !== 1 ? "s" : ""}`,
+    noMembersYet: "No members yet.",
+    inviteBtn: "Invite Members",
+    roomNameLabel: "Room Name",
+    roomNamePlaceholder: "Enter room name",
+    saveName: "Save Name",
+    personalManage: "My Room View",
+    heatmapTitle: "Heatmap Color",
+    heatmapDesc: "Choose the shared color used in the overlap heatmap.",
+    roomSettings: "Room Settings",
+    deleteRoom: "Delete Room",
+    deleteTitle: "Delete this room?",
     deleteDesc: (name: string) =>
-      `"${name}" 룸을 삭제하면 멤버들의 일정 공유가 종료됩니다.\n이 작업은 되돌릴 수 없어요.`,
-    deleteNo: "취소",
-    deleteYes: "삭제",
-    toastDay: ["월", "화", "수", "목", "금", "토", "일"],
+      `Deleting "${name}" ends schedule sharing for every member.\nThis action cannot be undone.`,
+    deleteNo: "Cancel",
+    deleteYes: "Delete",
+    toastDay: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     toastConfirmed: (count: number, slot?: string) =>
-      count === 1 && slot ? `${slot} 확정` : `${count}개 시간 확정`,
-    toastCancelled: (count: number) => `${count}개 시간 취소`,
-    toastSuffix: " 완료",
-    changeColor: "색상 변경",
+      count === 1 && slot ? `${slot} confirmed` : `${count} slots confirmed`,
+    toastCancelled: (count: number) => `${count} slots cancelled`,
+    toastError: "Room confirm failed.",
+    toastSuffix: "",
+    changeColor: "Change color",
   },
   en: {
     notFound: "Room not found.",
@@ -91,6 +92,7 @@ const T = {
     toastConfirmed: (count: number, slot?: string) =>
       count === 1 && slot ? `${slot} confirmed` : `${count} slots confirmed`,
     toastCancelled: (count: number) => `${count} slots cancelled`,
+    toastError: "Room confirm failed.",
     toastSuffix: "",
     changeColor: "Change color",
   },
@@ -165,33 +167,48 @@ export default function RoomDetailPage() {
   ) => {
     if (newSlots.length === 0 && cancelSlotIds.length === 0) return;
 
-    const response = await fetch(`/api/rooms/${room.id}/confirm`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slots: newSlots, cancelIds: cancelSlotIds }),
-    });
+    try {
+      const response = await fetch(`/api/rooms/${room.id}/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slots: newSlots, cancelIds: cancelSlotIds }),
+      });
 
-    if (response.ok) {
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Room confirm failed:", response.status, errorText);
+        setConfirmed({ label: t.toastError });
+        setTimeout(() => setConfirmed(null), 4000);
+        return;
+      }
+
       const data = await response.json();
       const allSlots = (data.slots ?? []).map(normalizeConfirmedSlot);
       setConfirmedSlots(room.id, allSlots);
-      if (user) await fetchEvents();
-    }
 
-    const parts: string[] = [];
-    if (newSlots.length > 0) {
-      const slotLabel =
-        newSlots.length === 1
-          ? `${t.toastDay[newSlots[0].dayOfWeek]} ${newSlots[0].startTime}`
-          : undefined;
-      parts.push(t.toastConfirmed(newSlots.length, slotLabel));
-    }
-    if (cancelSlotIds.length > 0) {
-      parts.push(t.toastCancelled(cancelSlotIds.length));
-    }
+      if (user) {
+        await fetchEvents();
+      }
 
-    setConfirmed({ label: parts.join(" / ") + t.toastSuffix });
-    setTimeout(() => setConfirmed(null), 4000);
+      const parts: string[] = [];
+      if (newSlots.length > 0) {
+        const slotLabel =
+          newSlots.length === 1
+            ? `${t.toastDay[newSlots[0].dayOfWeek]} ${newSlots[0].startTime}`
+            : undefined;
+        parts.push(t.toastConfirmed(newSlots.length, slotLabel));
+      }
+      if (cancelSlotIds.length > 0) {
+        parts.push(t.toastCancelled(cancelSlotIds.length));
+      }
+
+      setConfirmed({ label: parts.join(" / ") + t.toastSuffix });
+      setTimeout(() => setConfirmed(null), 4000);
+    } catch (error) {
+      console.error("Room confirm crashed:", error);
+      setConfirmed({ label: t.toastError });
+      setTimeout(() => setConfirmed(null), 4000);
+    }
   };
 
   return (
@@ -210,11 +227,7 @@ export default function RoomDetailPage() {
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl"
           style={{ backgroundColor: hexToRgba(hex, 0.15), color: hex }}
         >
-          {pref?.icon ? (
-            <RoomIconEl icon={pref.icon} />
-          ) : (
-            <RoomIconEl icon={room.icon} />
-          )}
+          <RoomIconEl icon={pref?.icon ?? room.icon} />
         </div>
 
         <div className="min-w-0 flex-1">
