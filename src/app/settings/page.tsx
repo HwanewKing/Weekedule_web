@@ -5,12 +5,13 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useAuthStore } from "@/lib/authStore";
-import { NotificationType } from "@/lib/notificationStore";
+import type { NotificationType } from "@/lib/notificationTypes";
 import { useSettingsStore } from "@/lib/settingsStore";
 
 type Section = "profile" | "timetable" | "display" | "notifications" | "about";
+type SettingsNotificationType = Exclude<NotificationType, "friend_accepted">;
 
-const NOTIF_TYPES: NotificationType[] = [
+const NOTIF_TYPES: SettingsNotificationType[] = [
   "room_invite",
   "friend_request",
   "meeting_confirmed",
@@ -121,7 +122,7 @@ export default function SettingsPage() {
           about: "About",
         }[section];
 
-  const notifLabel = (type: NotificationType) =>
+  const notifLabel = (type: SettingsNotificationType) =>
     isKo
       ? {
           room_invite: ["방 초대", "누군가 방에 초대했을 때"],

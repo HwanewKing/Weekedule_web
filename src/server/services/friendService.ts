@@ -5,16 +5,16 @@ async function notifyFriendAccepted(requesterId: string, accepterId: string) {
   const accepter = await db.user.findUnique({ where: { id: accepterId } });
 
   await createNotification(requesterId, {
-    type: "meeting_confirmed",
+    type: "friend_accepted",
     title: "친구 요청 수락",
-    body: `${accepter?.name}님이 친구 요청을 수락했어요`,
+    body: `${accepter?.name ?? "상대방"}님이 친구 요청을 수락했어요.`,
     meta: { fromName: accepter?.name },
   });
 }
 
 async function createFriendRequest(requesterId: string, addresseeId: string) {
   if (addresseeId === requesterId) {
-    return { error: "자신에게 친구 요청을 보낼 수 없어요", code: "self" as const };
+    return { error: "자기 자신에게 친구 요청을 보낼 수 없어요.", code: "self" as const };
   }
 
   const existing = await db.friendRelation.findFirst({
@@ -28,11 +28,11 @@ async function createFriendRequest(requesterId: string, addresseeId: string) {
 
   if (existing) {
     if (existing.status === "accepted") {
-      return { error: "이미 친구 관계예요", code: "already" as const };
+      return { error: "이미 친구 관계예요.", code: "already" as const };
     }
 
     if (existing.requesterId === requesterId) {
-      return { error: "이미 친구 요청을 보냈어요", code: "pending" as const };
+      return { error: "이미 친구 요청을 보냈어요.", code: "pending" as const };
     }
 
     const updated = await db.friendRelation.update({
@@ -53,7 +53,7 @@ async function createFriendRequest(requesterId: string, addresseeId: string) {
   await createNotification(addresseeId, {
     type: "friend_request",
     title: "친구 요청",
-    body: `${requester?.name}님이 친구 요청을 보냈어요`,
+    body: `${requester?.name ?? "누군가"}님이 친구 요청을 보냈어요.`,
     actionable: true,
     meta: { fromName: requester?.name, relationId: relation.id },
   });
@@ -64,19 +64,16 @@ async function createFriendRequest(requesterId: string, addresseeId: string) {
 export async function sendFriendRequest(requesterId: string, toEmail: string) {
   const addressee = await db.user.findUnique({ where: { email: toEmail } });
   if (!addressee) {
-    return { error: "해당 이메일의 사용자를 찾을 수 없어요", code: "not_found" as const };
+    return { error: "해당 이메일의 사용자를 찾을 수 없어요.", code: "not_found" as const };
   }
 
   return createFriendRequest(requesterId, addressee.id);
 }
 
-export async function sendFriendRequestToUser(
-  requesterId: string,
-  addresseeId: string
-) {
+export async function sendFriendRequestToUser(requesterId: string, addresseeId: string) {
   const addressee = await db.user.findUnique({ where: { id: addresseeId } });
   if (!addressee) {
-    return { error: "초대 사용자를 찾을 수 없어요", code: "not_found" as const };
+    return { error: "초대 대상 사용자를 찾을 수 없어요.", code: "not_found" as const };
   }
 
   return createFriendRequest(requesterId, addressee.id);
@@ -90,7 +87,10 @@ export async function respondToRequest(
   const relation = await db.friendRelation.findFirst({
     where: { id: relationId, addresseeId: userId, status: "pending" },
   });
-  if (!relation) return { error: "요청을 찾을 수 없어요" };
+
+  if (!relation) {
+    return { error: "요청을 찾을 수 없어요." };
+  }
 
   if (action === "decline") {
     await db.friendRelation.delete({ where: { id: relationId } });
@@ -128,20 +128,20 @@ export async function listFriends(userId: string) {
   });
 
   const friends = relations
-    .filter((r) => r.status === "accepted")
-    .map((r) => ({
-      id: r.id,
-      status: r.status,
-      friend: r.requesterId === userId ? r.addressee : r.requester,
+    .filter((relation) => relation.status === "accepted")
+    .map((relation) => ({
+      id: relation.id,
+      status: relation.status,
+      friend: relation.requesterId === userId ? relation.addressee : relation.requester,
     }));
 
   const pendingIn = relations
-    .filter((r) => r.status === "pending" && r.addresseeId === userId)
-    .map((r) => ({ id: r.id, from: r.requester }));
+    .filter((relation) => relation.status === "pending" && relation.addresseeId === userId)
+    .map((relation) => ({ id: relation.id, from: relation.requester }));
 
   const pendingOut = relations
-    .filter((r) => r.status === "pending" && r.requesterId === userId)
-    .map((r) => ({ id: r.id, to: r.addressee }));
+    .filter((relation) => relation.status === "pending" && relation.requesterId === userId)
+    .map((relation) => ({ id: relation.id, to: relation.addressee }));
 
   return { friends, pendingIn, pendingOut };
 }

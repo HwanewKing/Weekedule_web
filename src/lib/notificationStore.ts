@@ -1,13 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-
-export type NotificationType =
-  | "friend_request"
-  | "room_invite"
-  | "meeting_confirmed"
-  | "member_joined"
-  | "schedule_conflict";
+import type { NotificationType } from "./notificationTypes";
 
 export interface Notification {
   id: string;

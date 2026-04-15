@@ -11,10 +11,7 @@ interface RoomInput {
 export async function listRooms(userId: string) {
   const rooms = await db.room.findMany({
     where: {
-      OR: [
-        { ownerId: userId },
-        { members: { some: { userId } } },
-      ],
+      OR: [{ ownerId: userId }, { members: { some: { userId } } }],
     },
     include: {
       members: {
@@ -27,23 +24,27 @@ export async function listRooms(userId: string) {
     orderBy: { createdAt: "desc" },
   });
 
-  // 모든 룸 멤버의 개인 CalendarEvent를 한 번에 가져옴 (personalEvents for ScheduleOverlap)
-  const allUserIds = [...new Set(rooms.flatMap((r) => r.members.map((m) => m.userId)))];
-  const personalEvents = allUserIds.length > 0
-    ? await db.calendarEvent.findMany({ where: { userId: { in: allUserIds } } })
-    : [];
+  const allUserIds = [
+    ...new Set(rooms.flatMap((room) => room.members.map((member) => member.userId))),
+  ];
+  const personalEvents =
+    allUserIds.length > 0
+      ? await db.calendarEvent.findMany({ where: { userId: { in: allUserIds } } })
+      : [];
 
   const eventsByUser = new Map<string, typeof personalEvents>();
-  for (const e of personalEvents) {
-    if (!eventsByUser.has(e.userId)) eventsByUser.set(e.userId, []);
-    eventsByUser.get(e.userId)!.push(e);
+  for (const event of personalEvents) {
+    if (!eventsByUser.has(event.userId)) {
+      eventsByUser.set(event.userId, []);
+    }
+    eventsByUser.get(event.userId)!.push(event);
   }
 
   return rooms.map((room) => ({
     ...room,
-    members: room.members.map((m) => ({
-      ...m,
-      personalEvents: eventsByUser.get(m.userId) ?? [],
+    members: room.members.map((member) => ({
+      ...member,
+      personalEvents: eventsByUser.get(member.userId) ?? [],
     })),
   }));
 }
@@ -80,23 +81,26 @@ export async function getRoom(id: string) {
       },
     },
   });
+
   if (!room) return null;
 
-  // 멤버의 개인 CalendarEvent도 함께 가져옴 (Feature 2)
-  const memberUserIds = room.members.map((m) => m.userId);
-  const personalEvents = memberUserIds.length > 0
-    ? await db.calendarEvent.findMany({ where: { userId: { in: memberUserIds } } })
-    : [];
+  const memberUserIds = room.members.map((member) => member.userId);
+  const personalEvents =
+    memberUserIds.length > 0
+      ? await db.calendarEvent.findMany({ where: { userId: { in: memberUserIds } } })
+      : [];
 
   const eventsByUser = new Map<string, typeof personalEvents>();
-  for (const e of personalEvents) {
-    if (!eventsByUser.has(e.userId)) eventsByUser.set(e.userId, []);
-    eventsByUser.get(e.userId)!.push(e);
+  for (const event of personalEvents) {
+    if (!eventsByUser.has(event.userId)) {
+      eventsByUser.set(event.userId, []);
+    }
+    eventsByUser.get(event.userId)!.push(event);
   }
 
-  const membersWithPersonal = room.members.map((m) => ({
-    ...m,
-    personalEvents: eventsByUser.get(m.userId) ?? [],
+  const membersWithPersonal = room.members.map((member) => ({
+    ...member,
+    personalEvents: eventsByUser.get(member.userId) ?? [],
   }));
 
   return { ...room, members: membersWithPersonal };
@@ -114,7 +118,7 @@ export async function confirmSlots(
   slots: { dayOfWeek: number; startTime: string; endTime: string }[]
 ) {
   await db.confirmedSlot.createMany({
-    data: slots.map((s) => ({ roomId, ...s })),
+    data: slots.map((slot) => ({ roomId, ...slot })),
   });
   return getConfirmedSlots(roomId);
 }
@@ -133,17 +137,31 @@ export async function deleteRoom(id: string, ownerId: string) {
   return db.room.deleteMany({ where: { id, ownerId } });
 }
 
-export async function addMember(roomId: string, ownerId: string, userId: string) {
-  // 오너만 멤버 추가 가능
-  const room = await db.room.findFirst({ where: { id: roomId, ownerId } });
-  if (!room) return { error: "권한이 없어요" };
+export async function addMember(roomId: string, inviterUserId: string, targetUserId: string) {
+  const room = await db.room.findFirst({
+    where: {
+      id: roomId,
+      OR: [
+        { ownerId: inviterUserId },
+        { members: { some: { userId: inviterUserId } } },
+      ],
+    },
+  });
 
-  // 이미 멤버인지 확인
-  const existing = await db.roomMember.findUnique({ where: { roomId_userId: { roomId, userId } } });
-  if (existing) return { error: "이미 멤버예요" };
+  if (!room) {
+    return { error: "방에 참여 중인 멤버만 다른 멤버를 초대할 수 있어요." };
+  }
+
+  const existing = await db.roomMember.findUnique({
+    where: { roomId_userId: { roomId, userId: targetUserId } },
+  });
+
+  if (existing) {
+    return { error: "이미 방에 참여 중인 사용자예요." };
+  }
 
   return db.roomMember.create({
-    data: { roomId, userId },
+    data: { roomId, userId: targetUserId },
     include: {
       user: { select: { id: true, name: true, email: true } },
     },
@@ -155,7 +173,6 @@ export async function updateMemberColor(memberId: string, userId: string, colorI
 }
 
 export async function removeMember(memberId: string, userId: string, ownerId: string) {
-  // 오너이거나 자기 자신인 경우만 제거 가능
   return db.roomMember.deleteMany({
     where: {
       id: memberId,

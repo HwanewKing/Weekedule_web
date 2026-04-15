@@ -5,8 +5,8 @@ import { useState } from "react";
 import {
   useNotificationStore,
   type Notification,
-  type NotificationType,
 } from "@/lib/notificationStore";
+import type { NotificationType } from "@/lib/notificationTypes";
 import { useSettingsStore } from "@/lib/settingsStore";
 import { useAuthStore } from "@/lib/authStore";
 
@@ -32,13 +32,9 @@ interface NotiT {
   guestDesc: string;
   login: string;
   signup: string;
-  bodyTemplates: {
-    friend_request: (meta: Record<string, string>) => string;
-    meeting_confirmed: (meta: Record<string, string>) => string;
-    room_invite: (meta: Record<string, string>) => string;
-    member_joined: (meta: Record<string, string>) => string;
-    schedule_conflict: (meta: Record<string, string>) => string;
-  };
+  bodyTemplates: Partial<
+    Record<NotificationType, (meta: Record<string, string>) => string>
+  >;
 }
 
 function getBody(notification: Notification, t: NotiT): string {
@@ -105,6 +101,10 @@ const T: Record<string, NotiT> = {
     signup: "Sign Up",
     bodyTemplates: {
       friend_request: (m) => `${m.fromName ?? "Someone"} sent you a friend request.`,
+      friend_accepted: (m) =>
+        m.fromName
+          ? `${m.fromName} accepted your friend request.`
+          : "Your friend request was accepted.",
       meeting_confirmed: (m) =>
         m.fromName
           ? `${m.fromName} accepted your friend request.`
@@ -146,6 +146,17 @@ const TYPE_CONFIG: Record<NotificationType, { icon: ReactNode; bg: string; color
         <circle cx="9" cy="7" r="4" />
         <line x1="19" y1="8" x2="19" y2="14" />
         <line x1="22" y1="11" x2="16" y2="11" />
+      </svg>
+    ),
+  },
+  friend_accepted: {
+    bg: "#dcfce7",
+    color: "#16a34a",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <polyline points="16 11 18 13 22 9" />
       </svg>
     ),
   },

@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { NotificationType } from "./notificationStore";
+import type { NotificationType } from "./notificationTypes";
 
 export type Theme    = "light" | "dark" | "system";
 export type Language = "ko" | "en";
@@ -29,6 +29,7 @@ export interface SettingsStore {
 
 const DEFAULT_NOTIF: Record<NotificationType, boolean> = {
   friend_request:    true,
+  friend_accepted:   true,
   room_invite:       true,
   meeting_confirmed: true,
   member_joined:     true,
