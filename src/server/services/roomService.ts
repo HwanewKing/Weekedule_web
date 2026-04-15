@@ -14,6 +14,54 @@ interface ConfirmSlotInput {
   endTime: string;
 }
 
+async function syncConfirmedSlotEvents(
+  tx: Parameters<Parameters<typeof db.$transaction>[0]>[0],
+  room: Awaited<ReturnType<typeof ensureRoomParticipant>>,
+  confirmedSlot: { id: string; dayOfWeek: number; startTime: string; endTime: string }
+) {
+  for (const member of room.members) {
+    const existingRoomEvent = await tx.calendarEvent.findFirst({
+      where: {
+        userId: member.userId,
+        sourceConfirmedSlotId: confirmedSlot.id,
+      },
+      select: { id: true },
+    });
+
+    if (existingRoomEvent) {
+      continue;
+    }
+
+    const conflict = await tx.calendarEvent.findFirst({
+      where: {
+        userId: member.userId,
+        dayOfWeek: confirmedSlot.dayOfWeek,
+        startTime: { lt: confirmedSlot.endTime },
+        endTime: { gt: confirmedSlot.startTime },
+      },
+      select: { id: true },
+    });
+
+    if (conflict) {
+      continue;
+    }
+
+    await tx.calendarEvent.create({
+      data: {
+        userId: member.userId,
+        title: `${room.name} Meeting`,
+        description: `Room meeting: ${room.name}`,
+        dayOfWeek: confirmedSlot.dayOfWeek,
+        startTime: confirmedSlot.startTime,
+        endTime: confirmedSlot.endTime,
+        categoryId: "meeting",
+        sourceRoomId: room.id,
+        sourceConfirmedSlotId: confirmedSlot.id,
+      },
+    });
+  }
+}
+
 async function getAccessibleRoom(roomId: string, userId: string) {
   return db.room.findFirst({
     where: {
@@ -172,46 +220,18 @@ export async function syncRoomConfirmedSlots(
           startTime: slot.startTime,
           endTime: slot.endTime,
         },
-        select: { id: true },
+        select: { id: true, dayOfWeek: true, startTime: true, endTime: true },
       });
 
       if (existingConfirmedSlot) {
+        await syncConfirmedSlotEvents(tx, room, existingConfirmedSlot);
         continue;
       }
 
       const createdSlot = await tx.confirmedSlot.create({
         data: { roomId, ...slot },
       });
-
-      for (const member of room.members) {
-        const conflict = await tx.calendarEvent.findFirst({
-          where: {
-            userId: member.userId,
-            dayOfWeek: slot.dayOfWeek,
-            startTime: { lt: slot.endTime },
-            endTime: { gt: slot.startTime },
-          },
-          select: { id: true },
-        });
-
-        if (conflict) {
-          continue;
-        }
-
-        await tx.calendarEvent.create({
-          data: {
-            userId: member.userId,
-            title: `${room.name} Meeting`,
-            description: `Room meeting: ${room.name}`,
-            dayOfWeek: slot.dayOfWeek,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            categoryId: "meeting",
-            sourceRoomId: room.id,
-            sourceConfirmedSlotId: createdSlot.id,
-          },
-        });
-      }
+      await syncConfirmedSlotEvents(tx, room, createdSlot);
     }
   });
 
