@@ -19,9 +19,9 @@ export async function GET(
   } catch (err) {
     if (err instanceof NextResponse) return err;
     if (err instanceof Error && err.message === "Room not found or access denied.") {
-      return NextResponse.json({ error: "룸 접근 권한이 없어요." }, { status: 403 });
+      return NextResponse.json({ error: "Room access denied." }, { status: 403 });
     }
-    return NextResponse.json({ error: "?쒕쾭 ?ㅻ쪟媛 諛쒖깮?덉뼱?? }, { status: 500 });
+    return NextResponse.json({ error: "Server error." }, { status: 500 });
   }
 }
 
@@ -42,8 +42,8 @@ export async function POST(
   } catch (err) {
     if (err instanceof NextResponse) return err;
     if (err instanceof Error && err.message === "Room not found or access denied.") {
-      return NextResponse.json({ error: "룸 접근 권한이 없어요." }, { status: 403 });
+      return NextResponse.json({ error: "Room access denied." }, { status: 403 });
     }
-    return NextResponse.json({ error: "?쒕쾭 ?ㅻ쪟媛 諛쒖깮?덉뼱?? }, { status: 500 });
+    return NextResponse.json({ error: "Server error." }, { status: 500 });
   }
 }
