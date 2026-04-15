@@ -12,6 +12,7 @@ import { normalizeConfirmedSlot, useRoomStore } from "@/lib/roomStore";
 import { useSettingsStore } from "@/lib/settingsStore";
 import { useWeekedualeStore } from "@/lib/store";
 import {
+  type ConfirmedSlot,
   HEATMAP_COLOR_OPTIONS,
   MEMBER_COLOR_OPTIONS,
   getMemberStyle,
@@ -100,6 +101,49 @@ const T = {
 
 type Tab = "overlap" | "members";
 
+function getSlotKey(slot: {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}) {
+  return `${slot.dayOfWeek}-${slot.startTime}-${slot.endTime}`;
+}
+
+function buildOptimisticConfirmedSlots(
+  currentSlots: ConfirmedSlot[],
+  roomId: string,
+  newSlots: { dayOfWeek: number; startTime: string; endTime: string }[],
+  cancelSlotIds: string[]
+) {
+  const remainingSlots = currentSlots.filter(
+    (slot) => !cancelSlotIds.includes(slot.id)
+  );
+  const slotMap = new Map(
+    remainingSlots.map((slot) => [getSlotKey(slot), slot] as const)
+  );
+
+  for (const slot of newSlots) {
+    const key = getSlotKey(slot);
+    if (slotMap.has(key)) continue;
+
+    slotMap.set(key, {
+      id: `optimistic-${key}`,
+      roomId,
+      dayOfWeek: slot.dayOfWeek,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  return Array.from(slotMap.values()).sort((left, right) => {
+    if (left.dayOfWeek !== right.dayOfWeek) {
+      return left.dayOfWeek - right.dayOfWeek;
+    }
+    return left.startTime.localeCompare(right.startTime);
+  });
+}
+
 export default function RoomDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -129,6 +173,7 @@ export default function RoomDetailPage() {
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [roomNameDraft, setRoomNameDraft] = useState("");
+  const [isConfirming, setIsConfirming] = useState(false);
 
   useEffect(() => {
     if (id) fetchConfirmedSlots(id);
@@ -166,6 +211,18 @@ export default function RoomDetailPage() {
     cancelSlotIds: string[]
   ) => {
     if (newSlots.length === 0 && cancelSlotIds.length === 0) return;
+    if (isConfirming) return;
+
+    const previousSlots = confirmedSlots[room.id] ?? [];
+    const optimisticSlots = buildOptimisticConfirmedSlots(
+      previousSlots,
+      room.id,
+      newSlots,
+      cancelSlotIds
+    );
+
+    setIsConfirming(true);
+    setConfirmedSlots(room.id, optimisticSlots);
 
     try {
       const response = await fetch(`/api/rooms/${room.id}/confirm`, {
@@ -177,6 +234,7 @@ export default function RoomDetailPage() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Room confirm failed:", response.status, errorText);
+        setConfirmedSlots(room.id, previousSlots);
         setConfirmed({ label: t.toastError });
         setTimeout(() => setConfirmed(null), 4000);
         return;
@@ -187,7 +245,7 @@ export default function RoomDetailPage() {
       setConfirmedSlots(room.id, allSlots);
 
       if (user) {
-        await fetchEvents();
+        void fetchEvents();
       }
 
       const parts: string[] = [];
@@ -206,8 +264,11 @@ export default function RoomDetailPage() {
       setTimeout(() => setConfirmed(null), 4000);
     } catch (error) {
       console.error("Room confirm crashed:", error);
+      setConfirmedSlots(room.id, previousSlots);
       setConfirmed({ label: t.toastError });
       setTimeout(() => setConfirmed(null), 4000);
+    } finally {
+      setIsConfirming(false);
     }
   };
 
