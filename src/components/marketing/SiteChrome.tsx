@@ -46,10 +46,10 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/login"
-            className="hidden rounded-full px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900 sm:inline-flex"
+            className="inline-flex rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-400 hover:text-slate-950 sm:px-4 sm:py-2 sm:text-sm"
           >
             로그인
           </Link>
@@ -58,7 +58,7 @@ export function SiteHeader() {
           />
           <Link
             href="/signup"
-            className="inline-flex rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
+            className="inline-flex rounded-full bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white transition-transform hover:-translate-y-0.5 sm:px-4 sm:py-2 sm:text-sm"
           >
             무료로 시작
           </Link>
