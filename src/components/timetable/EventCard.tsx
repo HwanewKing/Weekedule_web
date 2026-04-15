@@ -1,7 +1,10 @@
 "use client";
 
+import { useAuthStore } from "@/lib/authStore";
 import { useCategoryStore, getCategoryStyle } from "@/lib/categoryStore";
+import { useRoomPreferencesStore } from "@/lib/roomPreferencesStore";
 import { timeToMinutes, type CalendarEvent } from "@/types/event";
+import { getRoomColorHex } from "@/types/room";
 
 interface EventCardProps {
   event: CalendarEvent;
@@ -26,13 +29,18 @@ export default function EventCard({
   const startMin = timeToMinutes(event.startTime);
   const endMin = timeToMinutes(event.endTime);
   const durationMin = endMin - startMin;
+  const { user } = useAuthStore();
+  const { getRoomPreference } = useRoomPreferencesStore();
 
   const topPx = ((startMin - hourStart * 60) / 60) * slotHeightPx;
   const heightPx = (durationMin / 60) * slotHeightPx;
 
   const { getCategoryById } = useCategoryStore();
   const category = getCategoryById(event.category);
-  const color = event.sourceRoomId ? "#0f766e" : category?.color ?? "#9E9E9E";
+  const roomPref = event.sourceRoomId ? getRoomPreference(user?.id, event.sourceRoomId) : undefined;
+  const color = event.sourceRoomId
+    ? getRoomColorHex(roomPref?.color ?? "teal")
+    : category?.color ?? "#9E9E9E";
   const styles = getCategoryStyle(color);
 
   const leftPct = (col / totalCols) * 100;

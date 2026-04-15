@@ -4,15 +4,32 @@ import { useEffect, useState } from "react";
 import { useAuthStore } from "@/lib/authStore";
 import { RoomPreference, useRoomPreferencesStore } from "@/lib/roomPreferencesStore";
 import { useSettingsStore } from "@/lib/settingsStore";
-import { ROOM_COLOR_OPTIONS, hexToRgba, type Room } from "@/types/room";
+import {
+  ROOM_COLOR_OPTIONS,
+  getRoomColorHex,
+  hexToRgba,
+  type Room,
+  type RoomColor,
+  type RoomIcon,
+} from "@/types/room";
+import RoomIconEl from "./RoomIcon";
 
-const EMOJI_OPTIONS = ["🚀", "👥", "🧪", "🎨", "💻", "📚", "🎵", "⚽", "📅", "✨"];
+const ICON_OPTIONS: RoomIcon[] = [
+  "rocket",
+  "people",
+  "science",
+  "palette",
+  "code",
+  "book",
+  "music",
+  "sports",
+];
 
 const T = {
   ko: {
     title: "룸 관리",
     subtitle: "이 설정은 나에게만 보여요.",
-    emoji: "이모지",
+    icon: "아이콘",
     color: "색상",
     memo: "메모",
     memoPlaceholder: "이 룸을 나만의 방식으로 기억해보세요.",
@@ -22,7 +39,7 @@ const T = {
   en: {
     title: "Room Preferences",
     subtitle: "These changes are only visible to you.",
-    emoji: "Emoji",
+    icon: "Icon",
     color: "Color",
     memo: "Memo",
     memoPlaceholder: "Add a private note for this room.",
@@ -58,6 +75,10 @@ export default function RoomPersonalizeModal({
 
   if (!open) return null;
 
+  const previewColor: RoomColor = draft.color ?? room.color;
+  const previewIcon: RoomIcon = draft.icon ?? room.icon;
+  const previewHex = getRoomColorHex(previewColor);
+
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-on-surface/20 backdrop-blur-sm" onClick={onClose} />
@@ -69,27 +90,51 @@ export default function RoomPersonalizeModal({
           <p className="mt-1 text-sm text-on-surface-variant">{t.subtitle}</p>
         </div>
 
+        <div className="mb-5 flex items-center gap-4 rounded-2xl p-4" style={{ backgroundColor: hexToRgba(previewHex, 0.1) }}>
+          <div
+            className="rounded-xl border border-white/40 p-3"
+            style={{ backgroundColor: hexToRgba(previewHex, 0.15), color: previewHex }}
+          >
+            <RoomIconEl icon={previewIcon} />
+          </div>
+          <div>
+            <p className="text-sm font-bold" style={{ color: previewHex }}>
+              {room.name}
+            </p>
+            <p className="mt-0.5 line-clamp-1 text-xs text-on-surface-variant">
+              {draft.memo || room.description}
+            </p>
+          </div>
+        </div>
+
         <div className="space-y-5">
           <div>
             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-on-surface-variant">
-              {t.emoji}
+              {t.icon}
             </p>
-            <div className="flex flex-wrap gap-2">
-              {EMOJI_OPTIONS.map((emoji) => {
-                const active = draft.emoji === emoji;
+            <div className="grid grid-cols-8 gap-2">
+              {ICON_OPTIONS.map((icon) => {
+                const active = (draft.icon ?? room.icon) === icon;
                 return (
                   <button
-                    key={emoji}
-                    onClick={() =>
-                      setDraft((prev) => ({ ...prev, emoji: active ? undefined : emoji }))
-                    }
-                    className={`rounded-2xl border px-3 py-2 text-lg transition-all ${
+                    key={icon}
+                    onClick={() => setDraft((prev) => ({ ...prev, icon }))}
+                    className={`flex aspect-square items-center justify-center rounded-xl transition-all ${
                       active
-                        ? "border-primary bg-primary/10"
-                        : "border-outline-variant/20 hover:border-outline-variant/60"
+                        ? ""
+                        : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
                     }`}
+                    style={
+                      active
+                        ? {
+                            backgroundColor: hexToRgba(previewHex, 0.15),
+                            color: previewHex,
+                            outline: `2px solid ${previewHex}`,
+                          }
+                        : undefined
+                    }
                   >
-                    {emoji}
+                    <RoomIconEl icon={icon} />
                   </button>
                 );
               })}
@@ -100,31 +145,23 @@ export default function RoomPersonalizeModal({
             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-on-surface-variant">
               {t.color}
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {ROOM_COLOR_OPTIONS.map((option) => {
-                const active = draft.colorHex === option.hex;
+                const active = (draft.color ?? room.color) === option.value;
                 return (
                   <button
                     key={option.value}
-                    onClick={() =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        colorHex: active ? undefined : option.hex,
-                      }))
-                    }
-                    className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
-                      active
-                        ? "border-current shadow-sm"
-                        : "border-outline-variant/20 hover:border-outline-variant/60"
-                    }`}
+                    onClick={() => setDraft((prev) => ({ ...prev, color: option.value }))}
+                    title={option.label}
+                    className="h-8 w-8 rounded-full transition-all hover:scale-110"
                     style={{
-                      color: option.hex,
-                      backgroundColor: active ? hexToRgba(option.hex, 0.12) : undefined,
+                      backgroundColor: option.hex,
+                      boxShadow: active
+                        ? `0 0 0 3px white, 0 0 0 5px ${option.hex}`
+                        : "none",
+                      transform: active ? "scale(1.15)" : undefined,
                     }}
-                  >
-                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: option.hex }} />
-                    {option.label}
-                  </button>
+                  />
                 );
               })}
             </div>
@@ -154,8 +191,8 @@ export default function RoomPersonalizeModal({
           <button
             onClick={() => {
               setRoomPreference(user?.id, room.id, {
-                emoji: draft.emoji,
-                colorHex: draft.colorHex,
+                icon: draft.icon,
+                color: draft.color,
                 memo: draft.memo?.trim() ? draft.memo.trim() : undefined,
               });
               onClose();

@@ -152,7 +152,7 @@ export default function RoomDetailPage() {
     );
   }
 
-  const hex = pref?.colorHex ?? getRoomColorHex(room.color);
+  const hex = getRoomColorHex(pref?.color ?? room.color);
 
   const handleDeleteConfirmed = () => {
     deleteRoom(room.id);
@@ -210,8 +210,8 @@ export default function RoomDetailPage() {
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl"
           style={{ backgroundColor: hexToRgba(hex, 0.15), color: hex }}
         >
-          {pref?.emoji ? (
-            <span className="text-base leading-none">{pref.emoji}</span>
+          {pref?.icon ? (
+            <RoomIconEl icon={pref.icon} />
           ) : (
             <RoomIconEl icon={room.icon} />
           )}

@@ -2,10 +2,11 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { RoomColor, RoomIcon } from "@/types/room";
 
 export interface RoomPreference {
-  emoji?: string;
-  colorHex?: string;
+  icon?: RoomIcon;
+  color?: RoomColor;
   memo?: string;
 }
 

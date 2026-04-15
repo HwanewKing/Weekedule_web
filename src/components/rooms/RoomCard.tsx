@@ -19,7 +19,7 @@ export default function RoomCard({ room, featured = false }: RoomCardProps) {
   const { language } = useSettingsStore();
   const { getRoomPreference } = useRoomPreferencesStore();
   const pref = getRoomPreference(user?.id, room.id);
-  const hex = pref?.colorHex ?? getRoomColorHex(room.color);
+  const hex = getRoomColorHex(pref?.color ?? room.color);
   const extra = room.members.length > 3 ? room.members.length - 3 : 0;
   const visible = room.members.slice(0, 3);
   const nextSyncLabel = language === "ko" ? "다음 동기화" : "Next Sync";
@@ -46,8 +46,8 @@ export default function RoomCard({ room, featured = false }: RoomCardProps) {
                 className="rounded-2xl p-3"
                 style={{ backgroundColor: hexToRgba(hex, 0.12), color: hex }}
               >
-                {pref?.emoji ? (
-                  <span className="flex h-5 w-5 items-center justify-center text-lg">{pref.emoji}</span>
+                {pref?.icon ? (
+                  <RoomIconEl icon={pref.icon} />
                 ) : (
                   <RoomIconEl icon={room.icon} />
                 )}
