@@ -14,40 +14,102 @@ interface ConfirmSlotInput {
   endTime: string;
 }
 
+function getSlotSignature(slot: ConfirmSlotInput) {
+  return `${slot.dayOfWeek}-${slot.startTime}-${slot.endTime}`;
+}
+
+function slotsOverlap(
+  left: { dayOfWeek: number; startTime: string; endTime: string },
+  right: { dayOfWeek: number; startTime: string; endTime: string }
+) {
+  return (
+    left.dayOfWeek === right.dayOfWeek &&
+    left.startTime < right.endTime &&
+    left.endTime > right.startTime
+  );
+}
+
 async function syncConfirmedSlotEvents(
   tx: Parameters<Parameters<typeof db.$transaction>[0]>[0],
   room: Awaited<ReturnType<typeof ensureRoomParticipant>>,
-  confirmedSlot: { id: string; dayOfWeek: number; startTime: string; endTime: string }
+  confirmedSlots: Array<{
+    id: string;
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+  }>
 ) {
+  if (confirmedSlots.length === 0 || room.members.length === 0) {
+    return;
+  }
+
+  const memberUserIds = room.members.map((member) => member.userId);
+  const confirmedSlotIds = confirmedSlots.map((slot) => slot.id);
+
+  const [existingRoomEvents, conflictingEvents] = await Promise.all([
+    tx.calendarEvent.findMany({
+      where: {
+        userId: { in: memberUserIds },
+        sourceConfirmedSlotId: { in: confirmedSlotIds },
+      },
+      select: { userId: true, sourceConfirmedSlotId: true },
+    }),
+    tx.calendarEvent.findMany({
+      where: {
+        userId: { in: memberUserIds },
+        OR: confirmedSlots.map((slot) => ({
+          dayOfWeek: slot.dayOfWeek,
+          startTime: { lt: slot.endTime },
+          endTime: { gt: slot.startTime },
+        })),
+      },
+      select: {
+        userId: true,
+        dayOfWeek: true,
+        startTime: true,
+        endTime: true,
+        sourceConfirmedSlotId: true,
+      },
+    }),
+  ]);
+
+  const existingRoomEventKeys = new Set(
+    existingRoomEvents.map(
+      (event) => `${event.userId}-${event.sourceConfirmedSlotId}`
+    )
+  );
+
+  const conflictsByUser = new Map<string, typeof conflictingEvents>();
+  for (const event of conflictingEvents) {
+    if (!conflictsByUser.has(event.userId)) {
+      conflictsByUser.set(event.userId, []);
+    }
+    conflictsByUser.get(event.userId)!.push(event);
+  }
+
+  const newEvents = [];
   for (const member of room.members) {
-    const existingRoomEvent = await tx.calendarEvent.findFirst({
-      where: {
-        userId: member.userId,
-        sourceConfirmedSlotId: confirmedSlot.id,
-      },
-      select: { id: true },
-    });
+    const memberConflicts = conflictsByUser.get(member.userId) ?? [];
 
-    if (existingRoomEvent) {
-      continue;
-    }
+    for (const confirmedSlot of confirmedSlots) {
+      const existingKey = `${member.userId}-${confirmedSlot.id}`;
+      if (existingRoomEventKeys.has(existingKey)) {
+        continue;
+      }
 
-    const conflict = await tx.calendarEvent.findFirst({
-      where: {
-        userId: member.userId,
-        dayOfWeek: confirmedSlot.dayOfWeek,
-        startTime: { lt: confirmedSlot.endTime },
-        endTime: { gt: confirmedSlot.startTime },
-      },
-      select: { id: true },
-    });
+      const conflict = memberConflicts.some((event) => {
+        if (event.sourceConfirmedSlotId === confirmedSlot.id) {
+          return false;
+        }
 
-    if (conflict) {
-      continue;
-    }
+        return slotsOverlap(event, confirmedSlot);
+      });
 
-    await tx.calendarEvent.create({
-      data: {
+      if (conflict) {
+        continue;
+      }
+
+      newEvents.push({
         userId: member.userId,
         title: `${room.name} Meeting`,
         description: `Room meeting: ${room.name}`,
@@ -57,7 +119,14 @@ async function syncConfirmedSlotEvents(
         categoryId: "meeting",
         sourceRoomId: room.id,
         sourceConfirmedSlotId: confirmedSlot.id,
-      },
+      });
+    }
+  }
+
+  if (newEvents.length > 0) {
+    await tx.calendarEvent.createMany({
+      data: newEvents,
+      skipDuplicates: true,
     });
   }
 }
@@ -212,26 +281,42 @@ export async function syncRoomConfirmedSlots(
       });
     }
 
-    for (const slot of slots) {
-      const existingConfirmedSlot = await tx.confirmedSlot.findFirst({
+    const uniqueSlots = Array.from(
+      new Map(slots.map((slot) => [getSlotSignature(slot), slot])).values()
+    );
+
+    if (uniqueSlots.length > 0) {
+      const existingConfirmedSlots = await tx.confirmedSlot.findMany({
         where: {
           roomId,
-          dayOfWeek: slot.dayOfWeek,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
+          OR: uniqueSlots.map((slot) => ({
+            dayOfWeek: slot.dayOfWeek,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+          })),
         },
         select: { id: true, dayOfWeek: true, startTime: true, endTime: true },
       });
 
-      if (existingConfirmedSlot) {
-        await syncConfirmedSlotEvents(tx, room, existingConfirmedSlot);
-        continue;
+      const existingBySignature = new Map(
+        existingConfirmedSlots.map((slot) => [getSlotSignature(slot), slot])
+      );
+      const missingSlots = uniqueSlots.filter(
+        (slot) => !existingBySignature.has(getSlotSignature(slot))
+      );
+
+      const createdSlots = [];
+      for (const slot of missingSlots) {
+        const createdSlot = await tx.confirmedSlot.create({
+          data: { roomId, ...slot },
+        });
+        createdSlots.push(createdSlot);
       }
 
-      const createdSlot = await tx.confirmedSlot.create({
-        data: { roomId, ...slot },
-      });
-      await syncConfirmedSlotEvents(tx, room, createdSlot);
+      await syncConfirmedSlotEvents(tx, room, [
+        ...existingConfirmedSlots,
+        ...createdSlots,
+      ]);
     }
   });
 
