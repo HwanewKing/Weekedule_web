@@ -5,6 +5,7 @@ export type RoomIcon = "rocket" | "people" | "science" | "palette" | "code" | "b
 
 export interface RoomMember {
   id: string;
+  userId: string;
   name: string;
   initials: string;
   colorId: string;   // key into MEMBER_COLOR_OPTIONS

@@ -33,6 +33,7 @@ type RawRoomEvent = CalendarEvent;
 
 type RawRoomMember = {
   id: string;
+  userId: string;
   colorId?: string | null;
   user?: {
     name?: string | null;
@@ -99,6 +100,7 @@ function mapRoom(room: RawRoom): Room {
 
       return {
         id: member.id,
+        userId: member.userId,
         name,
         initials: name.slice(0, 2),
         colorId: member.colorId ?? "blue",
