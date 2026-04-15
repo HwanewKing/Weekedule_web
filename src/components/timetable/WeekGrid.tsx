@@ -19,6 +19,50 @@ interface EventLayout {
   totalCols: number;
 }
 
+function canMergeRoomEvents(current: CalendarEvent, next: CalendarEvent): boolean {
+  return (
+    !!current.sourceRoomId &&
+    current.sourceRoomId === next.sourceRoomId &&
+    current.title === next.title &&
+    current.dayOfWeek === next.dayOfWeek &&
+    current.endTime === next.startTime
+  );
+}
+
+function mergeRoomEventsForDisplay(events: CalendarEvent[]): CalendarEvent[] {
+  if (events.length === 0) return [];
+
+  const sorted = [...events].sort((a, b) => {
+    const startDiff = timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
+    if (startDiff !== 0) return startDiff;
+
+    const endDiff = timeToMinutes(a.endTime) - timeToMinutes(b.endTime);
+    if (endDiff !== 0) return endDiff;
+
+    return a.id.localeCompare(b.id);
+  });
+
+  const merged: CalendarEvent[] = [];
+
+  for (const event of sorted) {
+    const last = merged[merged.length - 1];
+
+    if (last && canMergeRoomEvents(last, event)) {
+      merged[merged.length - 1] = {
+        ...last,
+        id: `${last.id}__${event.id}`,
+        endTime: event.endTime,
+        sourceConfirmedSlotId: undefined,
+      };
+      continue;
+    }
+
+    merged.push(event);
+  }
+
+  return merged;
+}
+
 function timeToMinutes(t: string): number {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
@@ -140,7 +184,9 @@ export default function WeekGrid({ events, onEventClick }: WeekGridProps) {
           >
             <div />
             {visibleDays.map((dayIdx) => {
-              const dayEvents = events.filter((event) => event.dayOfWeek === dayIdx);
+              const dayEvents = mergeRoomEventsForDisplay(
+                events.filter((event) => event.dayOfWeek === dayIdx)
+              );
               const layouts = computeOverlapLayout(dayEvents);
 
               return (
