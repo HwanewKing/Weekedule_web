@@ -32,7 +32,7 @@ export default function EventCard({
 
   const { getCategoryById } = useCategoryStore();
   const category = getCategoryById(event.category);
-  const color = category?.color ?? "#9E9E9E";
+  const color = event.sourceRoomId ? "#0f766e" : category?.color ?? "#9E9E9E";
   const styles = getCategoryStyle(color);
 
   const leftPct = (col / totalCols) * 100;
@@ -63,6 +63,15 @@ export default function EventCard({
         <h4 className="line-clamp-2 text-xs font-bold leading-tight text-on-surface">
           {event.title}
         </h4>
+
+        {event.sourceRoomId ? (
+          <span
+            className="mt-1 inline-flex w-fit rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+            style={{ backgroundColor: styles.bg, color: styles.text }}
+          >
+            ROOM
+          </span>
+        ) : null}
 
         {heightPx > 80 && event.description ? (
           <p className="mt-1 line-clamp-2 text-[10px] leading-tight text-on-surface-variant">

@@ -25,6 +25,8 @@ function normalizeEvent(e: any): CalendarEvent {
     ...e,
     category: e.categoryId ?? e.category ?? "",
     groupId:  e.groupId ?? undefined,
+    sourceRoomId: e.sourceRoomId ?? undefined,
+    sourceConfirmedSlotId: e.sourceConfirmedSlotId ?? undefined,
   };
 }
 

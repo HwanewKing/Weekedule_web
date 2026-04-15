@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import BottomWidgets from "@/components/timetable/BottomWidgets";
@@ -28,6 +29,7 @@ const T = {
 } as const;
 
 export default function TimetablePage() {
+  const router = useRouter();
   const {
     events,
     weeklyGoal,
@@ -52,6 +54,11 @@ export default function TimetablePage() {
   };
 
   const openEdit = (event: CalendarEvent) => {
+    if (event.sourceRoomId) {
+      router.push(`/rooms/${event.sourceRoomId}`);
+      return;
+    }
+
     if (event.groupId) {
       setEditTargets(events.filter((item) => item.groupId === event.groupId));
       setEditTarget(null);

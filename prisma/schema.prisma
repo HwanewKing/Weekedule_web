@@ -42,6 +42,12 @@ model CalendarEvent {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  sourceRoomId String?
+  sourceRoom   Room?   @relation("RoomConfirmedEvents", fields: [sourceRoomId], references: [id], onDelete: Cascade)
+
+  sourceConfirmedSlotId String?
+  sourceConfirmedSlot   ConfirmedSlot? @relation(fields: [sourceConfirmedSlotId], references: [id], onDelete: SetNull)
+
   roomMemberEvents RoomMemberEvent[]
 
   createdAt DateTime @default(now())
@@ -64,6 +70,7 @@ model Room {
 
   members        RoomMember[]
   confirmedSlots ConfirmedSlot[]
+  calendarEvents CalendarEvent[] @relation("RoomConfirmedEvents")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -78,6 +85,7 @@ model ConfirmedSlot {
   dayOfWeek Int
   startTime String   // "HH:MM"
   endTime   String   // "HH:MM"
+  generatedEvents CalendarEvent[]
   createdAt DateTime @default(now())
 }
 

@@ -12,6 +12,8 @@ export interface CalendarEvent {
   location?: string;
   attendees?: string[];
   groupId?: string;   // 다중 슬롯 묶음 ID (함께 생성된 이벤트 그룹)
+  sourceRoomId?: string;
+  sourceConfirmedSlotId?: string;
 }
 
 export const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];

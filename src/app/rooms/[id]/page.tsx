@@ -106,7 +106,7 @@ export default function RoomDetailPage() {
     setConfirmedSlots,
   } = useRoomStore();
   const { user } = useAuthStore();
-  const { events, deleteEvent } = useWeekedualeStore();
+  const { fetchEvents } = useWeekedualeStore();
   const { language } = useSettingsStore();
   const t = T[language];
 
@@ -161,36 +161,8 @@ export default function RoomDetailPage() {
       setConfirmedSlots(room.id, allSlots);
     }
 
-    if (user && newSlots.length > 0) {
-      await Promise.all(
-        newSlots.map((slot) =>
-          fetch("/api/events", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: t.meetingTitle(room.name),
-              description: t.meetingDesc(room.name),
-              dayOfWeek: slot.dayOfWeek,
-              startTime: slot.startTime,
-              endTime: slot.endTime,
-              category: "meeting",
-            }),
-          })
-        )
-      );
-    }
-
-    if (cancelSlotIds.length > 0) {
-      const cancelled = (confirmedSlots[room.id] ?? []).filter((slot) => cancelSlotIds.includes(slot.id));
-      for (const slot of cancelled) {
-        const matched = events.filter(
-          (event) =>
-            event.dayOfWeek === slot.dayOfWeek &&
-            event.startTime === slot.startTime &&
-            event.endTime === slot.endTime
-        );
-        await Promise.all(matched.map((event) => deleteEvent(event.id)));
-      }
+    if (response.ok && user) {
+      await fetchEvents();
     }
 
     const parts: string[] = [];

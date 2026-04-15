@@ -8,6 +8,62 @@ interface RoomInput {
   heatmapColor?: string;
 }
 
+interface ConfirmSlotInput {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}
+
+async function getAccessibleRoom(roomId: string, userId: string) {
+  return db.room.findFirst({
+    where: {
+      id: roomId,
+      OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+    },
+    include: {
+      members: {
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+          events: { include: { event: true } },
+        },
+      },
+    },
+  });
+}
+
+function attachPersonalEventsToMembers<
+  T extends {
+    members: Array<{
+      userId: string;
+    }>;
+  },
+>(room: T, personalEvents: Array<{ userId: string }>) {
+  const eventsByUser = new Map<string, typeof personalEvents>();
+
+  for (const event of personalEvents) {
+    if (!eventsByUser.has(event.userId)) {
+      eventsByUser.set(event.userId, []);
+    }
+    eventsByUser.get(event.userId)!.push(event);
+  }
+
+  return {
+    ...room,
+    members: room.members.map((member) => ({
+      ...member,
+      personalEvents: eventsByUser.get(member.userId) ?? [],
+    })),
+  };
+}
+
+export async function ensureRoomParticipant(roomId: string, userId: string) {
+  const room = await getAccessibleRoom(roomId, userId);
+  if (!room) {
+    throw new Error("Room not found or access denied.");
+  }
+  return room;
+}
+
 export async function listRooms(userId: string) {
   const rooms = await db.room.findMany({
     where: {
@@ -32,21 +88,7 @@ export async function listRooms(userId: string) {
       ? await db.calendarEvent.findMany({ where: { userId: { in: allUserIds } } })
       : [];
 
-  const eventsByUser = new Map<string, typeof personalEvents>();
-  for (const event of personalEvents) {
-    if (!eventsByUser.has(event.userId)) {
-      eventsByUser.set(event.userId, []);
-    }
-    eventsByUser.get(event.userId)!.push(event);
-  }
-
-  return rooms.map((room) => ({
-    ...room,
-    members: room.members.map((member) => ({
-      ...member,
-      personalEvents: eventsByUser.get(member.userId) ?? [],
-    })),
-  }));
+  return rooms.map((room) => attachPersonalEventsToMembers(room, personalEvents));
 }
 
 export async function createRoom(ownerId: string, data: RoomInput) {
@@ -90,20 +132,7 @@ export async function getRoom(id: string) {
       ? await db.calendarEvent.findMany({ where: { userId: { in: memberUserIds } } })
       : [];
 
-  const eventsByUser = new Map<string, typeof personalEvents>();
-  for (const event of personalEvents) {
-    if (!eventsByUser.has(event.userId)) {
-      eventsByUser.set(event.userId, []);
-    }
-    eventsByUser.get(event.userId)!.push(event);
-  }
-
-  const membersWithPersonal = room.members.map((member) => ({
-    ...member,
-    personalEvents: eventsByUser.get(member.userId) ?? [],
-  }));
-
-  return { ...room, members: membersWithPersonal };
+  return attachPersonalEventsToMembers(room, personalEvents);
 }
 
 export async function getConfirmedSlots(roomId: string) {
@@ -113,20 +142,80 @@ export async function getConfirmedSlots(roomId: string) {
   });
 }
 
-export async function confirmSlots(
+export async function syncRoomConfirmedSlots(
   roomId: string,
-  slots: { dayOfWeek: number; startTime: string; endTime: string }[]
+  actorUserId: string,
+  slots: ConfirmSlotInput[],
+  cancelIds: string[]
 ) {
-  await db.confirmedSlot.createMany({
-    data: slots.map((slot) => ({ roomId, ...slot })),
-  });
-  return getConfirmedSlots(roomId);
-}
+  const room = await ensureRoomParticipant(roomId, actorUserId);
 
-export async function cancelSlots(roomId: string, ids: string[]) {
-  return db.confirmedSlot.deleteMany({
-    where: { id: { in: ids }, roomId },
+  await db.$transaction(async (tx) => {
+    if (cancelIds.length > 0) {
+      await tx.calendarEvent.deleteMany({
+        where: {
+          sourceRoomId: roomId,
+          sourceConfirmedSlotId: { in: cancelIds },
+        },
+      });
+
+      await tx.confirmedSlot.deleteMany({
+        where: { id: { in: cancelIds }, roomId },
+      });
+    }
+
+    for (const slot of slots) {
+      const existingConfirmedSlot = await tx.confirmedSlot.findFirst({
+        where: {
+          roomId,
+          dayOfWeek: slot.dayOfWeek,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+        },
+        select: { id: true },
+      });
+
+      if (existingConfirmedSlot) {
+        continue;
+      }
+
+      const createdSlot = await tx.confirmedSlot.create({
+        data: { roomId, ...slot },
+      });
+
+      for (const member of room.members) {
+        const conflict = await tx.calendarEvent.findFirst({
+          where: {
+            userId: member.userId,
+            dayOfWeek: slot.dayOfWeek,
+            startTime: { lt: slot.endTime },
+            endTime: { gt: slot.startTime },
+          },
+          select: { id: true },
+        });
+
+        if (conflict) {
+          continue;
+        }
+
+        await tx.calendarEvent.create({
+          data: {
+            userId: member.userId,
+            title: `${room.name} Meeting`,
+            description: `Room meeting: ${room.name}`,
+            dayOfWeek: slot.dayOfWeek,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            categoryId: "meeting",
+            sourceRoomId: room.id,
+            sourceConfirmedSlotId: createdSlot.id,
+          },
+        });
+      }
+    }
   });
+
+  return getConfirmedSlots(roomId);
 }
 
 export async function updateRoom(id: string, ownerId: string, data: Partial<RoomInput>) {
@@ -141,15 +230,12 @@ export async function addMember(roomId: string, inviterUserId: string, targetUse
   const room = await db.room.findFirst({
     where: {
       id: roomId,
-      OR: [
-        { ownerId: inviterUserId },
-        { members: { some: { userId: inviterUserId } } },
-      ],
+      OR: [{ ownerId: inviterUserId }, { members: { some: { userId: inviterUserId } } }],
     },
   });
 
   if (!room) {
-    return { error: "방에 참여 중인 멤버만 다른 멤버를 초대할 수 있어요." };
+    return { error: "諛⑹뿉 李몄뿬 以묒씤 硫ㅻ쾭留??ㅻⅨ 硫ㅻ쾭瑜?珥덈??????덉뼱??" };
   }
 
   const existing = await db.roomMember.findUnique({
@@ -157,7 +243,7 @@ export async function addMember(roomId: string, inviterUserId: string, targetUse
   });
 
   if (existing) {
-    return { error: "이미 방에 참여 중인 사용자예요." };
+    return { error: "?대? 諛⑹뿉 李몄뿬 以묒씤 ?ъ슜?먯삁??" };
   }
 
   return db.roomMember.create({
