@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import InviteModal from "@/components/rooms/InviteModal";
+import RoomPersonalizeModal from "@/components/rooms/RoomPersonalizeModal";
 import RoomIconEl from "@/components/rooms/RoomIcon";
 import ScheduleOverlap from "@/components/rooms/ScheduleOverlap";
 import { useAuthStore } from "@/lib/authStore";
+import { useRoomPreferencesStore } from "@/lib/roomPreferencesStore";
 import { normalizeConfirmedSlot, useRoomStore } from "@/lib/roomStore";
 import { useSettingsStore } from "@/lib/settingsStore";
 import { useWeekedualeStore } from "@/lib/store";
@@ -19,38 +21,40 @@ import {
 
 const T = {
   ko: {
-    notFound: "방을 찾을 수 없어요.",
+    notFound: "룸을 찾을 수 없어요.",
     backToList: "목록으로",
     memberCount: (count: number) => `${count}명`,
     tabOverlap: "겹치는 시간",
     tabMembers: "팀 관리",
     overlapTitle: "Schedule Overlap",
     overlapDesc:
-      "멤버들의 시간을 히트맵으로 확인하고 가장 잘 맞는 회의 시간을 찾아보세요. 셀을 클릭하면 시간을 확정할 수 있어요.",
+      "겹치는 시간을 확인하고 가장 좋은 시간을 확정해보세요. 셀을 누르면 룸 일정이 확정됩니다.",
     noMembers: "멤버가 없어요",
-    noMembersDesc: "먼저 팀 관리 탭에서 멤버를 초대해 주세요.",
-    goInvite: "멤버 초대하기",
+    noMembersDesc: "먼저 팀 관리 탭에서 멤버를 초대해보세요.",
+    goInvite: "멤버 초대",
     teamTitle: "팀 관리",
-    teamDesc: "멤버를 초대하고 색상을 조정할 수 있어요.",
-    eventsRegistered: (count: number) => `${count}개 일정 등록`,
+    teamDesc: "룸 이름 수정, 멤버 색상 관리, 공용 설정을 할 수 있어요.",
+    eventsRegistered: (count: number) => `${count}개 일정`,
     noMembersYet: "아직 멤버가 없어요.",
-    inviteBtn: "멤버 초대하기",
+    inviteBtn: "멤버 초대",
+    roomNameLabel: "룸 이름",
+    roomNamePlaceholder: "룸 이름 입력",
+    saveName: "이름 저장",
+    personalManage: "내 룸 관리",
     heatmapTitle: "히트맵 색상",
-    heatmapDesc: "겹치는 시간 히트맵에 사용할 기본 색상을 선택해 주세요.",
-    roomSettings: "방 설정",
-    deleteRoom: "방 삭제",
-    deleteTitle: "이 방을 삭제할까요?",
+    heatmapDesc: "겹치는 시간 히트맵의 공용 색상을 선택하세요.",
+    roomSettings: "룸 설정",
+    deleteRoom: "룸 삭제",
+    deleteTitle: "이 룸을 삭제할까요?",
     deleteDesc: (name: string) =>
-      `${name} 방을 삭제하면 멤버들의 일정 공유가 종료됩니다.\n이 작업은 되돌릴 수 없어요.`,
+      `"${name}" 룸을 삭제하면 멤버들의 일정 공유가 종료됩니다.\n이 작업은 되돌릴 수 없어요.`,
     deleteNo: "취소",
     deleteYes: "삭제",
     toastDay: ["월", "화", "수", "목", "금", "토", "일"],
     toastConfirmed: (count: number, slot?: string) =>
-      count === 1 && slot ? `${slot} 확정` : `${count}개 시간대 확정`,
-    toastCancelled: (count: number) => `${count}개 시간대 취소`,
-    toastSuffix: "되었어요!",
-    meetingTitle: (name: string) => `${name} 미팅`,
-    meetingDesc: (name: string) => `방 미팅: ${name}`,
+      count === 1 && slot ? `${slot} 확정` : `${count}개 시간 확정`,
+    toastCancelled: (count: number) => `${count}개 시간 취소`,
+    toastSuffix: " 완료",
     changeColor: "색상 변경",
   },
   en: {
@@ -61,17 +65,21 @@ const T = {
     tabMembers: "Team",
     overlapTitle: "Schedule Overlap",
     overlapDesc:
-      "View overlapping schedules as a heatmap and find the best meeting times. Click a cell to confirm a slot.",
+      "Review overlapping schedules and confirm the best times for the room.",
     noMembers: "No members yet",
     noMembersDesc: "Invite members from the Team tab first.",
     goInvite: "Invite Members",
-    teamTitle: "Team",
-    teamDesc: "Invite members and adjust their colors.",
-    eventsRegistered: (count: number) => `${count} event${count !== 1 ? "s" : ""} registered`,
+    teamTitle: "Team Management",
+    teamDesc: "Update the room name, member colors, and shared settings.",
+    eventsRegistered: (count: number) => `${count} event${count !== 1 ? "s" : ""}`,
     noMembersYet: "No members yet.",
     inviteBtn: "Invite Members",
+    roomNameLabel: "Room Name",
+    roomNamePlaceholder: "Enter room name",
+    saveName: "Save Name",
+    personalManage: "My Room View",
     heatmapTitle: "Heatmap Color",
-    heatmapDesc: "Choose the base color used in the overlap heatmap.",
+    heatmapDesc: "Choose the shared color used in the overlap heatmap.",
     roomSettings: "Room Settings",
     deleteRoom: "Delete Room",
     deleteTitle: "Delete this room?",
@@ -84,8 +92,6 @@ const T = {
       count === 1 && slot ? `${slot} confirmed` : `${count} slots confirmed`,
     toastCancelled: (count: number) => `${count} slots cancelled`,
     toastSuffix: "",
-    meetingTitle: (name: string) => `${name} Meeting`,
-    meetingDesc: (name: string) => `Room meeting: ${name}`,
     changeColor: "Change color",
   },
 } as const;
@@ -106,29 +112,39 @@ export default function RoomDetailPage() {
     setConfirmedSlots,
   } = useRoomStore();
   const { user } = useAuthStore();
+  const { getRoomPreference } = useRoomPreferencesStore();
   const { fetchEvents } = useWeekedualeStore();
   const { language } = useSettingsStore();
   const t = T[language];
 
   const room = rooms.find((item) => item.id === id);
+  const pref = getRoomPreference(user?.id, id);
 
   const [tab, setTab] = useState<Tab>("overlap");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPersonalizeModal, setShowPersonalizeModal] = useState(false);
   const [confirmed, setConfirmed] = useState<{ label: string } | null>(null);
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [roomNameDraft, setRoomNameDraft] = useState("");
 
   useEffect(() => {
     if (id) fetchConfirmedSlots(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [fetchConfirmedSlots, id]);
+
+  useEffect(() => {
+    if (room) setRoomNameDraft(room.name);
+  }, [room]);
 
   if (!room) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="text-center">
           <p className="mb-4 text-on-surface-variant">{t.notFound}</p>
-          <button onClick={() => router.push("/rooms")} className="text-sm font-semibold text-primary hover:underline">
+          <button
+            onClick={() => router.push("/rooms")}
+            className="text-sm font-semibold text-primary hover:underline"
+          >
             {t.backToList}
           </button>
         </div>
@@ -136,7 +152,7 @@ export default function RoomDetailPage() {
     );
   }
 
-  const hex = getRoomColorHex(room.color);
+  const hex = pref?.colorHex ?? getRoomColorHex(room.color);
 
   const handleDeleteConfirmed = () => {
     deleteRoom(room.id);
@@ -159,10 +175,7 @@ export default function RoomDetailPage() {
       const data = await response.json();
       const allSlots = (data.slots ?? []).map(normalizeConfirmedSlot);
       setConfirmedSlots(room.id, allSlots);
-    }
-
-    if (response.ok && user) {
-      await fetchEvents();
+      if (user) await fetchEvents();
     }
 
     const parts: string[] = [];
@@ -177,7 +190,7 @@ export default function RoomDetailPage() {
       parts.push(t.toastCancelled(cancelSlotIds.length));
     }
 
-    setConfirmed({ label: parts.join(" · ") + t.toastSuffix });
+    setConfirmed({ label: parts.join(" / ") + t.toastSuffix });
     setTimeout(() => setConfirmed(null), 4000);
   };
 
@@ -197,19 +210,36 @@ export default function RoomDetailPage() {
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl"
           style={{ backgroundColor: hexToRgba(hex, 0.15), color: hex }}
         >
-          <RoomIconEl icon={room.icon} />
+          {pref?.emoji ? (
+            <span className="text-base leading-none">{pref.emoji}</span>
+          ) : (
+            <RoomIconEl icon={room.icon} />
+          )}
         </div>
 
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-sm font-bold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
             {room.name}
           </h2>
+          {pref?.memo ? <p className="truncate text-xs text-on-surface-variant">{pref.memo}</p> : null}
         </div>
 
         <div className="flex items-center gap-1.5 rounded-full bg-surface-container-low px-3 py-1">
           <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
           <span className="text-xs font-medium text-on-surface-variant">{t.memberCount(room.members.length)}</span>
         </div>
+
+        <button
+          onClick={() => setShowPersonalizeModal(true)}
+          className="rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
+          aria-label={t.personalManage}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+            <circle cx="12" cy="19" r="1.5" fill="currentColor" />
+          </svg>
+        </button>
       </header>
 
       <div className="shrink-0 px-4 pt-4 sm:px-6 md:px-8">
@@ -235,10 +265,7 @@ export default function RoomDetailPage() {
         {tab === "overlap" ? (
           <>
             <div className="mb-6">
-              <h3
-                className="text-2xl font-extrabold tracking-tight text-on-surface sm:text-3xl"
-                style={{ fontFamily: "var(--font-manrope)" }}
-              >
+              <h3 className="text-2xl font-extrabold tracking-tight text-on-surface sm:text-3xl" style={{ fontFamily: "var(--font-manrope)" }}>
                 {t.overlapTitle}
               </h3>
               <p className="mt-1 max-w-lg text-sm text-on-surface-variant">{t.overlapDesc}</p>
@@ -246,14 +273,6 @@ export default function RoomDetailPage() {
 
             {room.members.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 text-center">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-container">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-on-surface-variant">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
-                </div>
                 <p className="mb-1 text-base font-bold text-on-surface">{t.noMembers}</p>
                 <p className="mb-4 text-sm text-on-surface-variant">{t.noMembersDesc}</p>
                 <button onClick={() => setTab("members")} className="btn-gradient rounded-full px-4 py-2 text-sm font-bold text-on-primary">
@@ -280,6 +299,24 @@ export default function RoomDetailPage() {
               <p className="mt-1 text-sm text-on-surface-variant">{t.teamDesc}</p>
             </div>
 
+            <div className="rounded-3xl border border-outline-variant/10 bg-surface-container-lowest p-5">
+              <h4 className="mb-2 text-sm font-bold text-on-surface">{t.roomNameLabel}</h4>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <input
+                  value={roomNameDraft}
+                  onChange={(event) => setRoomNameDraft(event.target.value)}
+                  placeholder={t.roomNamePlaceholder}
+                  className="field flex-1"
+                />
+                <button
+                  onClick={() => updateRoom(room.id, { name: roomNameDraft.trim() || room.name })}
+                  className="btn-gradient rounded-full px-4 py-2 text-sm font-bold text-on-primary"
+                >
+                  {t.saveName}
+                </button>
+              </div>
+            </div>
+
             <div className="overflow-hidden rounded-3xl border border-outline-variant/10 bg-surface-container-lowest">
               {room.members.length === 0 ? (
                 <p className="p-5 text-sm text-on-surface-variant">{t.noMembersYet}</p>
@@ -292,17 +329,12 @@ export default function RoomDetailPage() {
                 return (
                   <div key={member.id} className={index > 0 ? "border-t border-outline-variant/10" : ""}>
                     <div className="group flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-surface-container-low">
-                      <div
-                        style={memberStyle}
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold"
-                      >
+                      <div style={memberStyle} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold">
                         {member.initials[0]}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-on-surface">{member.name}</p>
-                        <p className="text-[10px] text-on-surface-variant">
-                          {t.eventsRegistered(member.events.length)}
-                        </p>
+                        <p className="text-[10px] text-on-surface-variant">{t.eventsRegistered(member.events.length)}</p>
                       </div>
 
                       <button
@@ -413,15 +445,6 @@ export default function RoomDetailPage() {
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-on-surface/20 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)} />
           <div className="relative w-full max-w-sm rounded-3xl bg-surface-container-lowest p-6 shadow-ambient">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-error/10">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-error">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                <path d="M10 11v6" />
-                <path d="M14 11v6" />
-                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-              </svg>
-            </div>
             <h3 className="mb-2 text-center text-lg font-bold text-on-surface" style={{ fontFamily: "var(--font-manrope)" }}>
               {t.deleteTitle}
             </h3>
@@ -454,6 +477,11 @@ export default function RoomDetailPage() {
       ) : null}
 
       {inviteOpen ? <InviteModal roomId={room.id} onClose={() => setInviteOpen(false)} /> : null}
+      <RoomPersonalizeModal
+        room={room}
+        open={showPersonalizeModal}
+        onClose={() => setShowPersonalizeModal(false)}
+      />
     </>
   );
 }

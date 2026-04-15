@@ -239,7 +239,13 @@ export async function syncRoomConfirmedSlots(
 }
 
 export async function updateRoom(id: string, ownerId: string, data: Partial<RoomInput>) {
-  return db.room.updateMany({ where: { id, ownerId }, data });
+  return db.room.updateMany({
+    where: {
+      id,
+      OR: [{ ownerId }, { members: { some: { userId: ownerId } } }],
+    },
+    data,
+  });
 }
 
 export async function deleteRoom(id: string, ownerId: string) {

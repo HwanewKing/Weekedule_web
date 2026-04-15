@@ -22,7 +22,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const userId = await requireAuth();
     const { id } = await params;
     const body = await req.json();
-    await updateRoom(id, userId, body);
+    const result = await updateRoom(id, userId, body);
+    if (result.count === 0) {
+      return NextResponse.json({ error: "Room update denied." }, { status: 403 });
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof NextResponse) return err;
