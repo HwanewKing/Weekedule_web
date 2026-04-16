@@ -32,7 +32,3 @@ export async function updateEvent(id: string, userId: string, data: Partial<Even
 export async function deleteEvent(id: string, userId: string) {
   return db.calendarEvent.deleteMany({ where: { id, userId } });
 }
-
-export async function getEventById(id: string) {
-  return db.calendarEvent.findUnique({ where: { id } });
-}

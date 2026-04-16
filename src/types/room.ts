@@ -25,12 +25,6 @@ export interface Room {
   createdAt: string;
 }
 
-export interface SelectedSlot {
-  dayOfWeek: number;  // 0=월~6=일
-  startTime: string;  // "HH:MM"
-  endTime: string;
-}
-
 export interface ConfirmedSlot {
   id: string;
   roomId: string;

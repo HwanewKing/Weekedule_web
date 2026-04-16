@@ -90,11 +90,6 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<Section>(initialSection);
   const [nameInput, setNameInput] = useState(user?.name ?? "");
   const [nameSaved, setNameSaved] = useState(false);
-  const [showPwForm, setShowPwForm] = useState(false);
-  const [pwCurrent, setPwCurrent] = useState("");
-  const [pwNext, setPwNext] = useState("");
-  const [pwConfirm, setPwConfirm] = useState("");
-  const [pwStatus, setPwStatus] = useState<"idle" | "saved" | "mismatch">("idle");
 
   const isKo = language === "ko";
   const displayName = user?.name ?? "";
@@ -144,22 +139,6 @@ export default function SettingsPage() {
     updateName(nameInput.trim());
     setNameSaved(true);
     setTimeout(() => setNameSaved(false), 2000);
-  };
-
-  const changePassword = () => {
-    if (pwNext !== pwConfirm) {
-      setPwStatus("mismatch");
-      return;
-    }
-    if (!pwCurrent || !pwNext) return;
-    setPwStatus("saved");
-    setPwCurrent("");
-    setPwNext("");
-    setPwConfirm("");
-    setTimeout(() => {
-      setPwStatus("idle");
-      setShowPwForm(false);
-    }, 2000);
   };
 
   return (
@@ -239,68 +218,6 @@ export default function SettingsPage() {
                       {isKo ? "프리미엄" : "Premium"}
                     </span>
                   </Row>
-                </Card>
-
-                <Card
-                  title={isKo ? "비밀번호 변경" : "Change password"}
-                  desc={isKo ? "주기적으로 바꾸면 보안에 도움이 됩니다." : "Changing it regularly helps with security."}
-                >
-                  <Row
-                    label={isKo ? "비밀번호 변경" : "Change password"}
-                    desc={isKo ? "새 비밀번호를 설정합니다." : "Set a new password."}
-                  >
-                    <button
-                      onClick={() => {
-                        setShowPwForm(!showPwForm);
-                        setPwStatus("idle");
-                        setPwCurrent("");
-                        setPwNext("");
-                        setPwConfirm("");
-                      }}
-                      className="rounded-xl border border-outline-variant px-3 py-1.5 text-xs font-semibold text-on-surface-variant transition-colors hover:bg-surface-container"
-                    >
-                      {showPwForm ? (isKo ? "닫기" : "Close") : (isKo ? "변경하기" : "Change")}
-                    </button>
-                  </Row>
-                  {showPwForm ? (
-                    <div className="flex flex-col gap-3 border-t border-outline-variant/10 px-5 pb-5">
-                      <div className="pt-1">
-                        <label className="label-field">{isKo ? "현재 비밀번호" : "Current password"}</label>
-                        <input type="password" value={pwCurrent} onChange={(event) => {
-                          setPwCurrent(event.target.value);
-                          setPwStatus("idle");
-                        }} className="field !py-2.5 text-sm" />
-                      </div>
-                      <div>
-                        <label className="label-field">{isKo ? "새 비밀번호" : "New password"}</label>
-                        <input type="password" value={pwNext} onChange={(event) => {
-                          setPwNext(event.target.value);
-                          setPwStatus("idle");
-                        }} className="field !py-2.5 text-sm" />
-                      </div>
-                      <div>
-                        <label className="label-field">{isKo ? "비밀번호 확인" : "Confirm password"}</label>
-                        <input type="password" value={pwConfirm} onChange={(event) => {
-                          setPwConfirm(event.target.value);
-                          setPwStatus("idle");
-                        }} className="field !py-2.5 text-sm" />
-                      </div>
-                      {pwStatus === "mismatch" ? (
-                        <p className="text-xs font-semibold text-error">
-                          {isKo ? "비밀번호가 서로 일치하지 않습니다." : "Passwords do not match."}
-                        </p>
-                      ) : null}
-                      <button
-                        onClick={changePassword}
-                        disabled={!pwCurrent || !pwNext || !pwConfirm}
-                        className={`rounded-xl py-2.5 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
-                          pwStatus === "saved" ? "bg-[#dcfce7] text-[#16a34a]" : "btn-gradient text-on-primary"
-                        }`}
-                      >
-                        {pwStatus === "saved" ? (isKo ? "변경됨" : "Changed") : (isKo ? "변경하기" : "Change")}
-                      </button>
-                    </div>
-                  ) : null}
                 </Card>
 
                 <Card title={isKo ? "계정 관리" : "Account Management"}>

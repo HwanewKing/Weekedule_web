@@ -16,8 +16,6 @@ export interface CalendarEvent {
   sourceConfirmedSlotId?: string;
 }
 
-export const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
-
 /** "HH:MM" → 분 단위 숫자 */
 export function timeToMinutes(t: string): number {
   const [h, m] = t.split(":").map(Number);

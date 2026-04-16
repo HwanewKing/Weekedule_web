@@ -104,6 +104,10 @@ export default function Sidebar() {
   const unreadNotifCount = notifications.filter((notification) => !notification.read).length;
   const displayName = user?.name ?? (language === "ko" ? "게스트" : "Guest");
   const logoutLabel = language === "ko" ? "로그아웃" : "Log out";
+  const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? "ca-pub-9920827976663604";
+  const adsenseSlot = process.env.NEXT_PUBLIC_ADSENSE_SLOT;
+  const showAdsenseSlot =
+    process.env.NEXT_PUBLIC_ENABLE_ADSENSE === "true" && Boolean(adsenseSlot);
 
   const initials = displayName
     .split(" ")
@@ -168,16 +172,18 @@ export default function Sidebar() {
           })}
         </nav>
 
-        <div className="px-3 py-3">
-          <ins
-            className="adsbygoogle"
-            style={{ display: "block" }}
-            data-ad-client="ca-pub-9920827976663604"
-            data-ad-slot="TODO_SLOT_ID"
-            data-ad-format="vertical"
-            data-full-width-responsive="false"
-          />
-        </div>
+        {showAdsenseSlot ? (
+          <div className="px-3 py-3">
+            <ins
+              className="adsbygoogle"
+              style={{ display: "block" }}
+              data-ad-client={adsenseClient}
+              data-ad-slot={adsenseSlot}
+              data-ad-format="vertical"
+              data-full-width-responsive="false"
+            />
+          </div>
+        ) : null}
 
         <div className="flex flex-col gap-1 px-3 pb-5 pt-3">
           <div className="flex items-center gap-3 rounded-xl bg-surface-container px-3 py-2.5">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuthStore } from "@/lib/authStore";
 import { RoomPreference, useRoomPreferencesStore } from "@/lib/roomPreferencesStore";
 import { useSettingsStore } from "@/lib/settingsStore";
@@ -54,6 +54,8 @@ interface RoomPersonalizeModalProps {
   onClose: () => void;
 }
 
+type RoomPersonalizeLabels = (typeof T)[keyof typeof T];
+
 export default function RoomPersonalizeModal({
   room,
   open,
@@ -62,18 +64,41 @@ export default function RoomPersonalizeModal({
   const { user } = useAuthStore();
   const { language } = useSettingsStore();
   const t = T[language];
-  const { getRoomPreference, setRoomPreference } = useRoomPreferencesStore();
+  const { getRoomPreference } = useRoomPreferencesStore();
 
   const existing = getRoomPreference(user?.id, room.id);
-  const [draft, setDraft] = useState<RoomPreference>(existing ?? {});
-
-  useEffect(() => {
-    if (open) {
-      setDraft(existing ?? {});
-    }
-  }, [existing, open]);
 
   if (!open) return null;
+
+  return (
+    <RoomPersonalizeModalContent
+      key={`${user?.id ?? "guest"}-${room.id}-${JSON.stringify(existing ?? {})}`}
+      room={room}
+      userId={user?.id}
+      existing={existing ?? {}}
+      t={t}
+      onClose={onClose}
+    />
+  );
+}
+
+interface RoomPersonalizeModalContentProps {
+  room: Room;
+  userId?: string;
+  existing: RoomPreference;
+  t: RoomPersonalizeLabels;
+  onClose: () => void;
+}
+
+function RoomPersonalizeModalContent({
+  room,
+  userId,
+  existing,
+  t,
+  onClose,
+}: RoomPersonalizeModalContentProps) {
+  const { setRoomPreference } = useRoomPreferencesStore();
+  const [draft, setDraft] = useState<RoomPreference>(existing);
 
   const previewColor: RoomColor = draft.color ?? room.color;
   const previewIcon: RoomIcon = draft.icon ?? room.icon;
@@ -190,7 +215,7 @@ export default function RoomPersonalizeModal({
           </button>
           <button
             onClick={() => {
-              setRoomPreference(user?.id, room.id, {
+              setRoomPreference(userId, room.id, {
                 icon: draft.icon,
                 color: draft.color,
                 memo: draft.memo?.trim() ? draft.memo.trim() : undefined,

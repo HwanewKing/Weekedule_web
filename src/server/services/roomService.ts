@@ -346,7 +346,7 @@ export async function addMember(roomId: string, inviterUserId: string, targetUse
   });
 
   if (!room) {
-    return { error: "諛⑹뿉 李몄뿬 以묒씤 硫ㅻ쾭留??ㅻⅨ 硫ㅻ쾭瑜?珥덈??????덉뼱??" };
+    return { error: "방에 참여 중인 멤버만 다른 멤버를 초대할 수 있어요." };
   }
 
   const existing = await db.roomMember.findUnique({
@@ -354,7 +354,7 @@ export async function addMember(roomId: string, inviterUserId: string, targetUse
   });
 
   if (existing) {
-    return { error: "?대? 諛⑹뿉 李몄뿬 以묒씤 ?ъ슜?먯삁??" };
+    return { error: "이미 방에 참여 중인 사용자예요." };
   }
 
   return db.roomMember.create({
