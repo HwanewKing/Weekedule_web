@@ -23,7 +23,7 @@ const principles = [
   },
   {
     title: "읽을 가치가 있는 정보 제공",
-    body: "서비스 소개 페이지뿐 아니라 일정 관리와 생활 루틴에 관한 실용적인 가이드를 함께 제공합니다. 독자가 광고보다 먼저 콘텐츠 가치를 느끼는 사이트가 되는 것을 목표로 합니다.",
+    body: "서비스 소개 페이지뿐 아니라 일정 관리와 생활 루틴에 관한 실용적인 가이드를 함께 제공합니다. 독자가 실제로 도움받을 수 있는 콘텐츠를 꾸준히 발행하는 것을 목표로 합니다.",
   },
 ];
 
@@ -32,8 +32,9 @@ export default function AboutPage() {
     <div className="bg-white text-slate-900">
       <SiteHeader />
       <main>
-        <section className="border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,#dbeafe,transparent_42%),linear-gradient(180deg,#ffffff,#f8fafc)]">
-          <div className="mx-auto max-w-5xl px-5 py-20 sm:px-6 lg:px-8">
+        <section className="relative overflow-hidden border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,#dbeafe,transparent_42%),linear-gradient(180deg,#ffffff,#f8fafc)]">
+          <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-emerald-100/40 blur-3xl" />
+          <div className="relative mx-auto max-w-5xl px-5 py-20 sm:px-6 lg:px-8">
             <p className="mb-4 text-sm font-bold uppercase tracking-[0.24em] text-sky-700">
               About Weekedule
             </p>
@@ -43,11 +44,10 @@ export default function AboutPage() {
             >
               일정 관리가 삶을 더 단순하게 만들어야 한다고 믿습니다.
             </h1>
-            <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-600">
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
               Weekedule은 개인의 주간 계획부터 가족 일정 공유, 팀 회의 시간
               조율까지 더 가볍고 명확하게 만들기 위한 서비스입니다. 동시에 일정
-              관리와 생활 루틴에 관한 고품질 가이드를 꾸준히 발행하는 정보형
-              사이트를 지향합니다.
+              관리와 생활 루틴에 관한 실용적인 가이드를 꾸준히 발행합니다.
             </p>
           </div>
         </section>
@@ -83,18 +83,19 @@ export default function AboutPage() {
             </h2>
             <div className="mt-6 space-y-5 text-sm leading-7 text-slate-600">
               <p>
-                우리는 로그인하지 않아도 읽을 수 있는 공개 정보 페이지를
-                충분히 제공하고, 검색엔진이 사이트 구조를 이해할 수 있도록
-                메타데이터와 사이트맵을 관리합니다.
+                로그인하지 않아도 읽을 수 있는 가이드와 정보 페이지를 충분히
+                제공합니다. 서비스를 처음 접하는 사람도 부담 없이 둘러볼 수
+                있는 구조를 유지하는 것을 기본 원칙으로 삼고 있습니다.
               </p>
               <p>
-                또한 광고 수익보다 사용자 신뢰를 우선합니다. 사이트 승인 전
-                광고 노출을 무리하게 늘리거나 클릭을 유도하는 방식은 사용하지
-                않습니다.
+                기능 설명이나 가이드 내용에서 과장된 효과를 약속하지 않습니다.
+                사용자가 직접 써보고 가치를 판단할 수 있도록 투명하고 솔직한
+                방식으로 서비스를 소개합니다.
               </p>
               <p>
                 공개 가이드 콘텐츠는 실제 사용 장면에서 도움이 되는 주제를
-                중심으로 작성하며, 운영 원칙과 정책 페이지도 별도로 공개합니다.
+                중심으로 작성하며, 내용이 바뀌면 수정일을 함께 표시해
+                최신 상태를 유지합니다.
               </p>
             </div>
           </article>
@@ -116,7 +117,7 @@ export default function AboutPage() {
             </p>
             <Link
               href="/guides"
-              className="mt-6 inline-flex rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-950"
+              className="mt-6 inline-flex rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-950 transition-transform hover:-translate-y-0.5"
             >
               가이드 보러 가기
             </Link>
