@@ -93,7 +93,7 @@ export function getHeatStyle(ratio: number, heatmapColorId: string): { backgroun
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
-  const alpha = ratio <= 0.25 ? 0.95 : ratio <= 0.5 ? 0.55 : ratio <= 0.75 ? 0.18 : 0.05;
+  const alpha = ratio < 0.05 ? 0.95 : ratio < 0.2 ? 0.75 : ratio < 0.45 ? 0.50 : ratio < 0.75 ? 0.20 : 0.05;
   return { backgroundColor: `rgba(${r},${g},${b},${alpha})` };
 }
 
