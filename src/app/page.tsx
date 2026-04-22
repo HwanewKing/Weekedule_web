@@ -16,16 +16,16 @@ export const metadata: Metadata = {
 
 const highlights = [
   {
-    title: "읽을 가치가 있는 공개 콘텐츠",
-    body: "로그인 없이 읽을 수 있는 가이드와 정책 페이지를 함께 제공해 사이트 신뢰도와 탐색성을 높였습니다.",
+    title: "주간 뷰 중심 설계",
+    body: "월·화·수·목·금 흐름을 한 화면에서 파악합니다. 날짜를 이리저리 이동하지 않아도 이번 주 일정 전체를 한눈에 볼 수 있습니다.",
   },
   {
-    title: "주간 화면 중심의 일정 경험",
-    body: "개인 계획, 가족 일정, 팀 공유 일정을 주간 단위로 파악하기 쉬운 구조를 지향합니다.",
+    title: "룸으로 일정 공유",
+    body: "가족이나 팀원을 룸에 초대해 서로의 시간표를 겹쳐볼 수 있습니다. 비어 있는 공통 시간대를 빠르게 찾을 때 유용합니다.",
   },
   {
-    title: "정책 친화적인 운영 구조",
-    body: "명확한 소개, 정책 페이지, 사이트맵, 로봇 파일, 광고 기본 비활성화 전략으로 심사 친화성을 높였습니다.",
+    title: "게스트 모드로 바로 체험",
+    body: "회원가입 없이도 핵심 기능을 먼저 써볼 수 있습니다. 마음에 들면 그때 계정을 만들어 데이터를 저장하면 됩니다.",
   },
 ];
 
@@ -36,14 +36,14 @@ const faq = [
       "개인 주간 계획을 정리하고 싶은 사용자, 가족 캘린더를 함께 관리하는 가정, 회의 시간을 빠르게 정하고 싶은 소규모 팀에 잘 맞습니다.",
   },
   {
-    question: "로그인하지 않아도 볼 수 있는 정보가 있나요?",
+    question: "로그인 없이도 써볼 수 있나요?",
     answer:
-      "네. 메인 페이지, 가이드, 소개, 문의, 개인정보처리방침, 이용약관, 운영 원칙 페이지는 모두 공개되어 있습니다.",
+      "네. 게스트 모드로 로그인 없이 주간 시간표를 직접 사용해볼 수 있습니다. 데이터를 저장하려면 계정을 만들면 됩니다.",
   },
   {
-    question: "광고가 바로 보이나요?",
+    question: "룸은 어떻게 사용하나요?",
     answer:
-      "승인 전에는 광고 스크립트를 기본 비활성화해 두고, 승인 후 환경 설정으로만 켤 수 있도록 구성했습니다.",
+      "룸을 만들고 친구나 팀원을 초대하면 각자의 시간표가 한 화면에서 겹쳐 표시됩니다. 공통으로 비어 있는 시간대를 빠르게 찾을 수 있습니다.",
   },
 ];
 
@@ -72,10 +72,9 @@ export default function HomePage() {
                 더 선명하게 정리하는 방법
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-                Weekedule은 개인 일정 관리 앱이면서 동시에 일정 정리, 가족
-                캘린더, 팀 협업 루틴에 관한 실용적인 가이드를 제공하는 정보형
-                사이트입니다. 광고보다 먼저 콘텐츠와 사용자 경험을 우선하는
-                구조로 설계했습니다.
+                Weekedule은 주간 일정을 한눈에 정리하고 가족·팀원과 쉽게
+                공유할 수 있는 일정 관리 앱입니다. 일정 정리, 가족 캘린더,
+                팀 협업 루틴에 관한 실용적인 가이드도 함께 제공합니다.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link
@@ -95,8 +94,8 @@ export default function HomePage() {
                 </Link>
               </div>
               <div className="mt-10 flex flex-wrap gap-6 text-sm text-slate-500">
-                <span>공개 정보 페이지 제공</span>
-                <span>정책 페이지 정리</span>
+                <span>무료로 이용 가능</span>
+                <span>회원가입 없이 체험</span>
                 <span>주간 중심 일정 경험</span>
               </div>
             </div>
@@ -139,12 +138,11 @@ export default function HomePage() {
                   </div>
                   <div className="rounded-[1.5rem] border border-slate-200 p-5">
                     <p className="text-sm font-bold text-slate-900">
-                      공개 콘텐츠와 서비스가 함께 있는 구조
+                      개인·가족·팀 일정을 하나의 앱으로
                     </p>
                     <p className="mt-2 text-sm leading-7 text-slate-600">
-                      소개 페이지, 정책 페이지, 가이드 허브, 상세 글, 사이트맵,
-                      robots 파일과 게스트 체험 동선까지 자연스럽게
-                      구성했습니다.
+                      시간표 공유, 겹치는 시간대 찾기, 주간 루틴 관리까지
+                      하나의 앱에서 간단하게 해결할 수 있습니다.
                     </p>
                   </div>
                 </div>
@@ -185,7 +183,7 @@ export default function HomePage() {
                   className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl"
                   style={{ fontFamily: "var(--font-manrope)" }}
                 >
-                  사이트 품질을 받쳐주는 공개 가이드 콘텐츠
+                  일정 관리에 도움이 되는 실용 가이드
                 </h2>
               </div>
               <Link
@@ -230,36 +228,46 @@ export default function HomePage() {
         </section>
 
         <section className="mx-auto grid max-w-6xl gap-10 px-5 py-16 sm:px-6 lg:grid-cols-[1fr,1fr] lg:px-8">
-          <article className="rounded-[2rem] border border-slate-200 p-8">
-            <p className="text-sm font-bold uppercase tracking-[0.24em] text-emerald-700">
-              Trust Signals
-            </p>
-            <h2
-              className="mt-4 text-3xl font-extrabold tracking-tight text-slate-950"
-              style={{ fontFamily: "var(--font-manrope)" }}
-            >
-              심사 친화성을 높이는 기본 요소
-            </h2>
-            <div className="mt-6 space-y-4 text-sm leading-7 text-slate-600">
-              <p>공개 홈, 소개, 문의, 정책, 가이드 허브, 상세 콘텐츠 제공</p>
-              <p>회원가입 전에도 게스트 모드로 핵심 화면을 빠르게 체험 가능</p>
-              <p>검색엔진을 위한 메타데이터, robots, sitemap, canonical 설정</p>
-              <p>광고 스크립트는 기본 비활성화 후 승인 뒤 환경변수로만 활성화</p>
-              <p>로그인 없이 접근 가능한 의미 있는 정보 페이지를 충분히 확보</p>
+          <article className="flex flex-col justify-between rounded-[2rem] bg-slate-950 p-8 text-white">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.24em] text-sky-300">
+                Get Started
+              </p>
+              <h2
+                className="mt-4 text-3xl font-extrabold tracking-tight"
+                style={{ fontFamily: "var(--font-manrope)" }}
+              >
+                지금 바로
+                <br />
+                시작해보세요
+              </h2>
+              <p className="mt-4 text-sm leading-7 text-slate-400">
+                계정 없이 게스트 모드로 먼저 써보고, 마음에 들면 무료로
+                가입하세요. 주간 시간표부터 룸 공유까지 모두 무료입니다.
+              </p>
+            </div>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/signup"
+                className="inline-flex rounded-full bg-white px-6 py-3 text-sm font-bold text-slate-950 transition-transform hover:-translate-y-0.5"
+              >
+                무료로 시작
+              </Link>
+              <GuestStartButton className="inline-flex rounded-full border border-white/20 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10" />
             </div>
           </article>
 
-          <article className="rounded-[2rem] bg-slate-950 p-8 text-slate-200">
-            <p className="text-sm font-bold uppercase tracking-[0.24em] text-cyan-300">
+          <article className="rounded-[2rem] border border-slate-200 p-8">
+            <p className="text-sm font-bold uppercase tracking-[0.24em] text-slate-500">
               FAQ
             </p>
             <div className="mt-6 space-y-5">
               {faq.map((item) => (
-                <div key={item.question} className="rounded-2xl bg-white/5 p-5">
-                  <h2 className="text-base font-bold text-white">
+                <div key={item.question} className="border-b border-slate-100 pb-5 last:border-0 last:pb-0">
+                  <h2 className="text-base font-bold text-slate-950">
                     {item.question}
                   </h2>
-                  <p className="mt-3 text-sm leading-7 text-slate-300">
+                  <p className="mt-2 text-sm leading-7 text-slate-600">
                     {item.answer}
                   </p>
                 </div>
