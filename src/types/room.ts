@@ -86,15 +86,26 @@ export function getMemberStyle(colorId: string): { backgroundColor: string; colo
   return { backgroundColor: opt.bg, color: opt.text };
 }
 
-/** heatmapColorId + ratio → inline style 객체 */
+/** heatmapColorId + busyRatio(0=all free, 1=all busy) → inline style 객체
+ *  alpha = 1 - busyRatio = freeCount / n
+ */
 export function getHeatStyle(ratio: number, heatmapColorId: string): { backgroundColor?: string } {
   const opt = HEATMAP_COLOR_OPTIONS.find((o) => o.id === heatmapColorId) ?? HEATMAP_COLOR_OPTIONS[0];
   const hex = opt.hex;
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
-  const alpha = ratio < 0.05 ? 0.95 : ratio < 0.2 ? 0.75 : ratio < 0.45 ? 0.50 : ratio < 0.75 ? 0.20 : 0.05;
-  return { backgroundColor: `rgba(${r},${g},${b},${alpha})` };
+  return { backgroundColor: `rgba(${r},${g},${b},${1 - ratio})` };
+}
+
+/** 범례 그라데이션 CSS 문자열 (Free → Busy) */
+export function getHeatGradient(heatmapColorId: string): string {
+  const opt = HEATMAP_COLOR_OPTIONS.find((o) => o.id === heatmapColorId) ?? HEATMAP_COLOR_OPTIONS[0];
+  const hex = opt.hex;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `linear-gradient(to right, rgba(${r},${g},${b},1), rgba(${r},${g},${b},0))`;
 }
 
 /** 하위 호환: colorIdx → colorId */

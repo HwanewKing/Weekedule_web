@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useSettingsStore } from "@/lib/settingsStore";
 import { timeToMinutes, type CalendarEvent } from "@/types/event";
 import {
+  getHeatGradient,
   getHeatStyle,
   getMemberStyle,
   type ConfirmedSlot,
@@ -260,16 +261,13 @@ export default function ScheduleOverlap({
           <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
             {t.heatmapLegend}
           </p>
-          <div className="mb-2 flex items-center gap-1.5">
-            <span className="w-7 text-[9px] text-on-surface-variant">{t.free}</span>
-            {[0, 0.1, 0.3, 0.6, 0.9].map((ratio, index) => (
-              <div
-                key={index}
-                className="h-4 flex-1 rounded-md bg-surface-container"
-                style={getHeatStyle(ratio, heatmapColor)}
-              />
-            ))}
-            <span className="w-7 text-right text-[9px] text-on-surface-variant">{t.busy}</span>
+          <div className="mb-2 flex items-center gap-2">
+            <span className="w-7 shrink-0 text-[9px] text-on-surface-variant">{t.free}</span>
+            <div
+              className="h-4 flex-1 rounded-md"
+              style={{ background: getHeatGradient(heatmapColor) }}
+            />
+            <span className="w-7 shrink-0 text-right text-[9px] text-on-surface-variant">{t.busy}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="relative flex h-4 w-8 items-center justify-center rounded-md bg-surface-container ring-[3px] ring-green-500">
