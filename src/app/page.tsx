@@ -172,7 +172,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="border-y border-slate-200 bg-slate-50">
+        <section className="bg-slate-50">
           <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 lg:px-8">
             <div className="flex items-end justify-between gap-6">
               <div>
@@ -198,13 +198,16 @@ export default function HomePage() {
               {featuredArticles.map((article) => (
                 <article
                   key={article.slug}
-                  className="rounded-[1.75rem] bg-white p-6 shadow-[0_12px_40px_rgba(15,23,42,0.06)]"
+                  className="group rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_12px_40px_rgba(15,23,42,0.05)] transition-transform hover:-translate-y-1"
                 >
-                  <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-500">
-                    {article.category}
-                  </p>
+                  <div className="flex items-center justify-between gap-4 text-xs font-bold text-slate-500">
+                    <span className="rounded-full bg-slate-100 px-3 py-1">
+                      {article.category}
+                    </span>
+                    <span>{article.readTime}</span>
+                  </div>
                   <h3
-                    className="mt-4 text-2xl font-extrabold tracking-tight text-slate-950"
+                    className="mt-5 text-2xl font-extrabold tracking-tight text-slate-950"
                     style={{ fontFamily: "var(--font-manrope)" }}
                   >
                     <Link href={`/guides/${article.slug}`}>{article.title}</Link>
@@ -213,12 +216,12 @@ export default function HomePage() {
                     {article.excerpt}
                   </p>
                   <div className="mt-6 flex items-center justify-between text-sm text-slate-500">
-                    <span>{article.readTime}</span>
+                    <span>업데이트 {article.updatedAt}</span>
                     <Link
                       href={`/guides/${article.slug}`}
-                      className="font-bold text-slate-950"
+                      className="font-bold text-slate-900"
                     >
-                      읽기
+                      읽어보기
                     </Link>
                   </div>
                 </article>
