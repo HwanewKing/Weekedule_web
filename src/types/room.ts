@@ -95,7 +95,7 @@ export function getHeatStyle(ratio: number, heatmapColorId: string): { backgroun
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
-  return { backgroundColor: `rgba(${r},${g},${b},${1 - ratio})` };
+  return { backgroundColor: `rgba(${r},${g},${b},${(1 - ratio) ** 2})` };
 }
 
 /** 범례 그라데이션 CSS 문자열 (Free → Busy) */
